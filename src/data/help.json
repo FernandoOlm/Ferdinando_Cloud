@@ -1,0 +1,86 @@
+{
+  "categorias": [
+    {
+      "titulo": "Gerais",
+      "comandos": [
+        { "cmd": "!ajuda", "desc": "Mostra a lista completa de comandos." },
+        { "cmd": "!ping", "desc": "Responde com a latência do bot." },
+        { "cmd": "!tic", "desc": "Retorna resposta rápida para teste." }
+      ]
+    },
+
+    {
+      "titulo": "Administração",
+      "comandos": [
+        { "cmd": "!all", "desc": "Marca todos os membros do grupo." },
+        { "cmd": "!cadastro-all", "desc": "Marca todos pedindo cadastro." },
+        { "cmd": "!listar-membros", "desc": "Lista todos os membros do grupo." },
+        { "cmd": "!autorizar", "desc": "Autoriza membros ou funções específicas." },
+
+
+        { "cmd": "!ban", "desc": "Bane alguém usando @ ou reply." },
+        { "cmd": "!unban", "desc": "Remove alguém da lista de banidos." },
+        { "cmd": "!bans", "desc": "Lista banidos do grupo." },
+        { "cmd": "!globalbans", "desc": "Lista todos os banidos globalmente." },
+
+        { "cmd": "!fechar", "desc": "Fecha o grupo (somente admins podem enviar)." },
+        { "cmd": "!abrir", "desc": "Abre o grupo para todos enviarem." },
+
+        { "cmd": "!sorteio", "desc": "Sorteia 1 ou mais participantes." }
+      ]
+    },
+
+    {
+      "titulo": "Boas-vindas (BV)",
+      "comandos": [
+        { "cmd": "!criar-bv", "desc": "Cria ou redefine a mensagem de boas-vindas." },
+        { "cmd": "!ativar-bv", "desc": "Ativa o sistema de boas-vindas." },
+        { "cmd": "!desativar-bv", "desc": "Desativa o sistema de boas-vindas." },
+        { "cmd": "!ver-bv", "desc": "Mostra a mensagem atual." },
+        { "cmd": "!del-bv", "desc": "Remove totalmente a mensagem." }
+      ]
+    },
+
+    {
+  "titulo": "Lembretes",
+  "comandos": [
+    {
+      "cmd": "!lembrete",
+      "desc": "Cria lembretes no formato NOVO: DD/MM/AAAA HH:MM [D|S|M] mensagem."
+    },
+    {
+      "cmd": "• Diário (D)",
+      "desc": "!lembrete 11/02/2026 20:00 D tomar água"
+    },
+    {
+      "cmd": "• Semanal (S)",
+      "desc": "!lembrete 11/02/2026 09:00 S reunião semanal"
+    },
+    {
+      "cmd": "• Mensal (M)",
+      "desc": "!lembrete 11/02/2026 05 09:00 M pagar boletos"
+    },
+    {
+      "cmd": "Atalhos opcionais",
+      "desc": "!lembrete-diario HH:MM mensagem | !lembrete-semanal HH:MM mensagem | !lembrete-mensal HH:MM mensagem"
+    },
+    {
+      "cmd": "!listar-lembretes",
+      "desc": "Mostra todos os lembretes ativos."
+    },
+    {
+      "cmd": "!desativar-lembrete ID",
+      "desc": "Remove um lembrete específico."
+    }
+  ]
+},
+
+    {
+      "titulo": "Xerife",
+      "comandos": [
+        { "cmd": "!ativar-xerife", "desc": "Ativa o sistema automático de regras." },
+        { "cmd": "!desativar-xerife", "desc": "Desativa o sistema automático de regras." }
+      ]
+    }
+  ]
+}

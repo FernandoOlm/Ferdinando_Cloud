@@ -1,0 +1,11 @@
+{
+  "acao": {
+    "grupo": "120363406086475158@g.us",
+    "data": "2026-02-11",
+    "hora": "19:00",
+    "comando": "!fechar",
+    "aconteceu": false,
+    "file": "../commands/Start_fechar.js",
+    "function": "Start_Fechar"
+  }
+}

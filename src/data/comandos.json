@@ -1,0 +1,163 @@
+{
+  "!listar-membros": {
+    "file": "../commands/listar-membros.js",
+    "function": "comandoListarMembros",
+    "admin": true
+  },
+
+  "!autorizar": {
+    "file": "../commands/autorizar.js",
+    "function": "comandoAutorizar",
+    "admin": true
+  },
+
+  "!criar-bv": {
+    "file": "../commands/bv.js",
+    "function": "comandoCriarBV",
+    "admin": true
+  },
+
+  "!ativar-bv": {
+    "file": "../commands/bv.js",
+    "function": "comandoAtivarBV",
+    "admin": true
+  },
+
+  "!desativar-bv": {
+    "file": "../commands/bv.js",
+    "function": "comandoDesativarBV",
+    "admin": true
+  },
+
+  "!ver-bv": {
+    "file": "../commands/bv.js",
+    "function": "comandoVerBV",
+    "admin": true
+  },
+
+  "!del-bv": {
+    "file": "../commands/bv.js",
+    "function": "comandoDelBV",
+    "admin": true
+  },
+
+  "!lembrete": {
+    "file": "../commands/lembretes.js",
+    "function": "cmdLembrete",
+    "admin": true
+  },
+
+    "!lembrete-diario": {
+      "file": "../commands/lembretes.js",
+      "function": "cmdLembreteDiario",
+      "admin": true
+    },
+
+    "!lembrete-semanal": {
+      "file": "../commands/lembretes.js",
+      "function": "cmdLembreteSemanal",
+      "admin": true
+    },
+
+    "!lembrete-mensal": {
+      "file": "../commands/lembretes.js",
+      "function": "cmdLembreteMensal",
+      "admin": true
+    },
+
+    "!desativar-lembrete": {
+      "file": "../commands/lembretes.js",
+      "function": "cmdDesativarLembrete",
+      "admin": true
+    },
+
+  "!ajuda": {
+  "file": "../commands/Start_ajuda.js",
+  "function": "Start_Ajuda",
+  "admin": false
+},
+
+"!fechar": {
+  "file": "../commands/Start_fechar.js",
+  "function": "Start_Fechar",
+  "admin": true
+},
+
+"!abrir": {
+  "file": "../commands/Start_abrir.js",
+  "function": "Start_Abrir",
+  "admin": true
+},
+"!ban": {
+  "file": "../commands/ban.js",
+  "function": "ban",
+  "admin": true
+},
+
+"!unban": {
+  "file": "../commands/ban.js",
+  "function": "unban",
+  "admin": true
+},
+
+"!bans": {
+  "file": "../commands/ban.js",
+  "function": "bansGrupo",
+  "admin": true
+},
+
+"!globalbans": {
+  "file": "../commands/ban.js",
+  "function": "bansGlobais",
+  "admin": true
+},
+"!all": {
+  "file": "../commands/all.js",
+  "function": "comandoAll",
+  "admin": true
+},
+
+"!cadastro-all": {
+  "file": "../commands/cadastro-all.js",
+  "function": "comandoCadastroAll",
+  "admin": true
+},
+"!ativar-xerife": {
+  "file": "../commands/xerife.js",
+  "function": "ativarXerife",
+  "admin": true
+},
+
+"!desativar-xerife": {
+  "file": "../commands/xerife.js",
+  "function": "desativarXerife",
+  "admin": true
+},
+
+"!anuncia": {
+  "file": "../commands/anuncia.js",
+  "function": "autorizarAnuncio",
+  "admin": true
+},
+"!ping": {
+  "file": "../commands/ping.js",
+  "function": "comandoPing",
+  "admin": true
+},
+"!tic": {
+  "file": "../commands/tic.js",
+  "function": "comandotic",
+  "admin": true
+},
+"!tiro": {
+  "file": "../commands/tiro.js",
+  "function": "comandotiro",
+  "admin": true
+},
+"!sorteio": {
+  "file": "../commands/sorteio.js",
+  "function": "comandoSorteio",
+  "admin": true
+}
+
+}

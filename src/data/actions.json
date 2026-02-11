@@ -1,0 +1,17 @@
+{
+  "!lembrestes": {
+    "file": "../commands/disparar.lembretes.js",
+    "function": "disparar_lembrete",
+    "admin": true
+  },
+  "!abrir": {
+    "file": "../commands/Start_abrir.js",
+    "function": "Start_Abrir",
+    "admin": true
+  },
+  "!fechar": {
+    "file": "../commands/Start_fechar.js",
+    "function": "Start_Fechar",
+    "admin": true
+  }
+}

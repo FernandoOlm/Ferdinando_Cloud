@@ -1,0 +1,26 @@
+{
+  "name": "ferdinando-ia",
+  "version": "1.0.0",
+  "description": "Bot Ferdinando IA — amigo chapado BR com memória, ações, personalidade e integração GROQ.",
+  "main": "src/core/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/core/index.js",
+    "pm2": "pm2 start src/core/index.js --name ferdinando-ia",
+    "dev": "nodemon src/core/index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.21",
+    "chalk": "^5.6.2",
+    "dotenv": "^16.6.1",
+    "groq-sdk": "^0.37.0",
+    "moment-timezone": "^0.5.48",
+    "node-fetch": "^3.3.2",
+    "openai": "^6.17.0",
+    "pino": "^9.14.0",
+    "qrcode-terminal": "^0.12.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}
