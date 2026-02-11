@@ -1,44 +1,5 @@
 {
   "lembretes": [
-    {
-      "id": 2,
-      "grupo": "120363406086475158@g.us",
-      "autor": "65060886032554",
-      "quando": "2026-02-12T16:20:00.000Z",
-      "texto": "Hora de F1",
-      "repeat": null
-    },
-    {
-      "id": 3,
-      "grupo": "120363406086475158@g.us",
-      "autor": "65060886032554",
-      "quando": "2026-02-12T16:20:00.000Z",
-      "texto": "Hora de F1",
-      "repeat": "weekly"
-    },
-    {
-      "id": 4,
-      "grupo": "120363406086475158@g.us",
-      "autor": "65060886032554",
-      "quando": "2026-02-12T16:20:00.000Z",
-      "texto": "Hora de F1",
-      "repeat": "monthly"
-    },
-    {
-      "id": 5,
-      "grupo": "120363406086475158@g.us",
-      "autor": "65060886032554",
-      "quando": "2026-02-12T16:20:00.000Z",
-      "texto": "Hora de F1",
-      "repeat": "daily"
-    },
-    {
-      "id": 6,
-      "grupo": "120363406086475158@g.us",
-      "autor": "182493630218254",
-      "quando": "2026-02-12T14:00:00.000Z",
-      "texto": "Acorda Vagabundo",
-      "repeat": "daily"
-    }
+    
   ]
 }
