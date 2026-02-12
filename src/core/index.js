@@ -344,14 +344,14 @@ const raw = msg.key.participant || msg.key.remoteJid;
 let fromClean = raw.replace(/@.*/, "");
 
 // =====================================================
-// PV → SISTEMA AUTOMATIZADO COM IA
+// PV → SISTEMA VIA CLAWBRAIN (SEM DUPLICAR)
 // =====================================================
 if (!isGroup) {
 
   const bansPath = path.resolve("src/data/bans.json");
   const textoLower = texto.toLowerCase();
 
-  let mensagemSistema = null;
+  let promptSistema = null;
 
   // ---------------- BAN GLOBAL ----------------
   if (fs.existsSync(bansPath)) {
@@ -359,54 +359,44 @@ if (!isGroup) {
     const banGlobal = bansDB.global?.find(b => b.alvo === fromClean);
 
     if (banGlobal) {
-      mensagemSistema = `
-🚨 Sistema Automatizado Ferdinando
-
-Sou um BOT.
-Não sou humano.
-
-Seu acesso foi bloqueado.
-Motivo registrado: ${banGlobal.motivo}.
+      promptSistema = `
+Responda como um sistema automatizado institucional.
+Deixe claro que é uma Inteligência Artificial.
+Informe que o acesso foi bloqueado.
+Motivo: ${banGlobal.motivo}.
 Grupo de origem: ${banGlobal.grupoOrigem}.
-
-Não existe julgamento.
-Existe regra programada.
-
-🤖 Fim da resposta automática.
+Não demonstre emoção.
+Finalize informando que o atendimento continua automático.
       `;
     }
   }
 
   // ---------------- PROTOCOLO DE SEGURANÇA ----------------
-  if (!mensagemSistema && textoLower.includes("sou de menor")) {
-    mensagemSistema = `
-🚨 Sistema Automatizado Ferdinando
-
-Sou um BOT.
-Não sou humano.
-
-Palavra sensível detectada na conversa.
-Protocolo de segurança foi ativado automaticamente.
-
-Não existe opinião.
-Existe detecção de padrão textual.
-
-🤖 Atendimento automático continua.
-    `;
+  if (!promptSistema && textoLower.includes("sou de menor")) {
+    promptSistema = `
+Responda como sistema automatizado.
+Informe que uma palavra sensível foi detectada.
+Explique que o protocolo de segurança foi ativado automaticamente.
+Deixe claro que é uma Inteligência Artificial.
+Não demonstre julgamento.
+Finalize dizendo que o atendimento automático continua.
+      `;
   }
 
-  // ---------------- SE PRECISAR RESPONDER ----------------
-  if (mensagemSistema) {
+  // ---------------- EXECUTA VIA CLAWBRAIN ----------------
+  if (promptSistema) {
 
     const respostaIA = await clawBrainProcess_Unique01({
       tipo: "comando",
       comando: "sistema",
-      dados: { mensagem: mensagemSistema }
+      dados: { mensagem: promptSistema }
     });
 
-    await sock.sendMessage(jid, { text: respostaIA });
+    if (respostaIA) {
+      await sock.sendMessage(jid, { text: respostaIA });
+    }
 
-    return;
+    return; // 🔥 impede qualquer outra resposta
   }
 }
 

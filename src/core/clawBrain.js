@@ -1,95 +1,92 @@
-// INÍCIO clawBrain.js — IA Pura + Suporte JSON
+// INÍCIO clawBrain.js — IA Pura + Sistema PV
 
+import fs from "fs";
+import path from "path";
 import { aiGenerateReply_Unique01 } from "./aiClient.js";
 import { executarAcoesAutomaticas_Unique01 } from "../actions/index.js";
 import { isFriend, setFriend } from "./friendManager.js";
 
-// Compactador — 1 linha + censura total
+// ------------------ UTIL ------------------
 function compactarResposta_Unique01(t) {
   if (!t) return "";
   return t
     .replace(/@\d+/g, "")
     .replace(/<@\d+>/g, "")
-    .replace(/\b(você|vc|cê|tu|teu|seu|sua|contigo)\b/gi, "")
-    .replace(/\b(pessoa|usuário|remetente|autor)\b/gi, "")
-    .replace(/\b[\w.-]+@[\w.-]+\.\w+\b/gi, "")
     .replace(/\n+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
-// ------------------ SORTEIO ------------------
-async function gerarDramaSorteio_Unique01() {
-  const frase = await aiGenerateReply_Unique01(`
-    Gere uma frase hype e curta para sorteio, máximo 5 palavras, sem mencionar pessoas.
-  `);
-  return compactarResposta_Unique01(frase);
-}
+// ------------------ SISTEMA PV ------------------
+async function verificarSistemaPV(msgObj) {
 
-async function fraseResultadoSorteio_Unique01(lista) {
-  const frase = await aiGenerateReply_Unique01(`
-    Frase final, 1 linha. Sem fantasia. Lista: ${JSON.stringify(lista)}
-  `);
-  return compactarResposta_Unique01(frase);
-}
+  const jid = msgObj?.key?.remoteJid;
+  if (!jid || jid.endsWith("@g.us")) return null; // só PV
 
-// ------------------ IA DE COMANDO ------------------
-async function processarComandoIA(obj) {
-  const { comando, dados } = obj;
+  const raw = msgObj?.key?.participant || jid;
+  const fromClean = raw.replace(/@.*/, "");
 
-  // Sem dados
-  if (!dados) {
-    const r = await aiGenerateReply_Unique01("Responda em 1 linha dizendo que o comando está vazio.");
-    return compactarResposta_Unique01(r);
+  const texto =
+    msgObj?.message?.conversation ||
+    msgObj?.message?.extendedTextMessage?.text ||
+    "";
+
+  const textoLower = texto.toLowerCase();
+
+  // --------- BAN GLOBAL ---------
+  const bansPath = path.resolve("src/data/bans.json");
+  if (fs.existsSync(bansPath)) {
+    const bansDB = JSON.parse(fs.readFileSync(bansPath, "utf8"));
+    const banGlobal = bansDB.global?.find(b => b.alvo === fromClean);
+
+    if (banGlobal) {
+      const resposta = await aiGenerateReply_Unique01(`
+Responda como sistema automatizado institucional.
+Deixe claro que é uma Inteligência Artificial.
+Informe que o acesso foi bloqueado automaticamente.
+Motivo: ${banGlobal.motivo}.
+Não demonstre emoção.
+Finalize dizendo que o atendimento automático continua.
+      `);
+
+      return compactarResposta_Unique01(resposta);
+    }
   }
 
-  // SORTEIO
-  if (dados.tipo === "sorteio") {
-    const drama = await gerarDramaSorteio_Unique01();
-    const final = await fraseResultadoSorteio_Unique01(dados.resultado);
-    return `${drama} ${final}`;
+  // --------- PALAVRA SENSÍVEL ---------
+  if (textoLower.includes("sou de menor")) {
+
+    const resposta = await aiGenerateReply_Unique01(`
+Responda como sistema automatizado.
+Informe que uma palavra sensível foi detectada.
+Explique que o protocolo de segurança foi ativado automaticamente.
+Deixe claro que é uma Inteligência Artificial.
+Não demonstre julgamento.
+Finalize dizendo que o atendimento automático continua.
+    `);
+
+    return compactarResposta_Unique01(resposta);
   }
 
-  // LISTAR MEMBROS
-  if (dados.tipo === "listar_membros") {
-    if (!Array.isArray(dados.membros) || dados.membros.length === 0)
-      return "Nenhum membro encontrado.";
-
-    return dados.membros
-      .map((m, i) => `${i + 1} - ${m}`)
-      .join("\n");
-  }
-
-  // Mensagem direta
-  if (dados.mensagem) {
-    return compactarResposta_Unique01(dados.mensagem);
-  }
-
-  // Ia limpa
-  const r = await aiGenerateReply_Unique01(
-    `Comando "${comando}". Responda em 1 linha. Dados: ${JSON.stringify(dados)}`
-  );
-
-  return compactarResposta_Unique01(r);
+  return null;
 }
 
 // ------------------ IA NORMAL ------------------
 async function processarIANormal(msgObj) {
+
   const texto =
     msgObj?.message?.conversation ||
     msgObj?.message?.extendedTextMessage?.text ||
     "";
 
   const jid = msgObj?.key?.remoteJid;
-
-  if (!jid) {
-    // Mensagem fora de fluxo → ignorar
-    return "";
-  }
+  if (!jid) return "";
 
   if (texto.toLowerCase().includes("amigo")) {
     setFriend(jid);
-    const r = await aiGenerateReply_Unique01("Responda em 1 linha confirmando amizade.");
+    const r = await aiGenerateReply_Unique01(
+      "Responda em 1 linha confirmando amizade."
+    );
     return compactarResposta_Unique01(r);
   }
 
@@ -103,20 +100,19 @@ async function processarIANormal(msgObj) {
 // ------------------ CENTRAL ------------------
 export async function clawBrainProcess_Unique01(msgObj) {
 
-  // 🔥 RESPOSTA DE JSON (!comandos)
+  // 🔥 SISTEMA PV PRIMEIRO
+  const sistemaPV = await verificarSistemaPV(msgObj);
+  if (sistemaPV) return sistemaPV;
+
+  // 🔥 COMANDO JSON
   if (msgObj?.tipo === "comando" && msgObj?.comando) {
-    return await processarComandoIA(msgObj);
-  }
-
-  // boas-vindas
-  if (msgObj?.tipo === "boasvindas") {
     const r = await aiGenerateReply_Unique01(
-      `Melhore a mensagem para 1 linha, mantendo @. Texto: "${msgObj.mensagem}"`
+      `Comando "${msgObj.comando}". Dados: ${JSON.stringify(msgObj.dados)}`
     );
-    return r.trim();
+    return compactarResposta_Unique01(r);
   }
 
-  // IA NORMAL
+  // 🔥 IA NORMAL
   return await processarIANormal(msgObj);
 }
 
