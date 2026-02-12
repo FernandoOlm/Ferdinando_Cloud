@@ -297,7 +297,7 @@ sock.ev.on("group-participants.update", async (update) => {
       // 1) Banimento automático
       const banDetectado = await banCheckEntrada_Unique01(sock, grupoId, usuario);
       if (banDetectado) {
-        console.log(`⛔ Usuário banido bloqueado: ${numero}`);
+        console.log(`⛔ Usuário banido bloqueado: ${nome} (${numero})`);
         continue;
       }
 
