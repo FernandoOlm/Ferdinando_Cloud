@@ -2,8 +2,12 @@
 import fs from "fs";
 import path from "path";
 
+// Caminho absoluto seguro
 const xerifePath = path.resolve("src/data/xerife.json");
 
+// -----------------------------
+// GARANTE ARQUIVO
+// -----------------------------
 function loadXerife() {
   if (!fs.existsSync(xerifePath)) {
     fs.writeFileSync(xerifePath, JSON.stringify({ grupos: {} }, null, 2));
@@ -15,7 +19,25 @@ function saveXerife(db) {
   fs.writeFileSync(xerifePath, JSON.stringify(db, null, 2));
 }
 
-export function ativarXerife(grupoId) {
+// -----------------------------
+// EXTRAI JID DO MSG
+// -----------------------------
+function extrairGrupoId(msg) {
+  return msg?.key?.remoteJid;
+}
+
+// -----------------------------
+// ATIVAR
+// -----------------------------
+export function ativarXerife(msg) {
+  const grupoId = extrairGrupoId(msg);
+  if (!grupoId || !grupoId.endsWith("@g.us")) {
+    return {
+      status: "erro",
+      mensagem: "Comando só pode ser usado em grupo."
+    };
+  }
+
   const db = loadXerife();
 
   db.grupos[grupoId] = {
@@ -25,13 +47,26 @@ export function ativarXerife(grupoId) {
 
   saveXerife(db);
 
+  console.log("🔫 Xerife ativado para:", grupoId);
+
   return {
     status: "ok",
     mensagem: "🔫 *Xerife ativado!*"
   };
 }
 
-export function desativarXerife(grupoId) {
+// -----------------------------
+// DESATIVAR
+// -----------------------------
+export function desativarXerife(msg) {
+  const grupoId = extrairGrupoId(msg);
+  if (!grupoId || !grupoId.endsWith("@g.us")) {
+    return {
+      status: "erro",
+      mensagem: "Comando só pode ser usado em grupo."
+    };
+  }
+
   const db = loadXerife();
 
   if (!db.grupos[grupoId]) {
@@ -45,14 +80,24 @@ export function desativarXerife(grupoId) {
 
   saveXerife(db);
 
+  console.log("🛑 Xerife desativado para:", grupoId);
+
   return {
     status: "ok",
     mensagem: "🛑 *Xerife desativado!*"
   };
 }
 
+// -----------------------------
+// VERIFICAR SE ATIVO
+// -----------------------------
 export function xerifeAtivo(grupoId) {
   const db = loadXerife();
-  return db.grupos[grupoId]?.ativo === true;
+  const ativo = db.grupos[grupoId]?.ativo === true;
+
+  console.log("🔎 Checando xerife:", grupoId, "→", ativo);
+
+  return ativo;
 }
+
 // FIM xerife.js
