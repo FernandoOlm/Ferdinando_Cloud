@@ -443,7 +443,7 @@ if (duplicado) {
     } else if (strikes === 2) {
       resposta = "🚫 Segunda repetição… tá pedindo pra arrumar confusão?";
     } else if (strikes >= 3) {
-      resposta = "🚨 Terceira repetição… chamando o admin!";
+      resposta = "🚨 Já mandou muitas vezes né? Admin foi avisado.";
     }
 
     if (resposta) {
@@ -475,18 +475,44 @@ if (duplicado) {
     const imgDuplicada = imagemDuplicada(jid, hash);
     console.log("📌 Resultado imagemDuplicada:", imgDuplicada);
 
-    if (imgDuplicada) {
-      console.log("🚨 IMAGEM DUPLICADA DETECTADA");
+  if (imgDuplicada) {
+  console.log("🚨 IMAGEM DUPLICADA DETECTADA");
 
-      if (!isAuthorAdmin && !isRoot) {
-        const strikes = addStrike(jid, fromClean);
-        console.log("🔥 Strikes agora:", strikes);
+  if (!isAuthorAdmin && !isRoot) {
 
-        await sock.sendMessage(jid, { delete: msg.key });
-      }
+    const strikes = addStrike(jid, fromClean);
+    console.log("🔥 Strike aplicado:", strikes);
 
-      return;
+    try {
+      await sock.sendMessage(jid, {
+        delete: {
+          remoteJid: jid,
+          fromMe: false,
+          id: msg.key.id,
+          participant: msg.key.participant
+        }
+      });
+    } catch (e) {
+      console.log("⚠️ Erro ao deletar (ignorando):", e.message);
     }
+
+    let resposta = "";
+
+    if (strikes === 1) {
+      resposta = "⚠️ Recruta… repetir imagem não é estratégia.";
+    } else if (strikes === 2) {
+      resposta = "🚫 Duas vezes no mesmo dia? Quer entrar no saco?";
+    } else if (strikes >= 3) {
+      resposta = "🚨 Já mandou muitas vezes né? Admin foi avisado.";
+    }
+
+    if (resposta) {
+      await sock.sendMessage(jid, { text: resposta });
+    }
+  }
+
+  return;
+}
 
     console.log("🆕 Registrando imagem nova...");
     registrarImagem(jid, hash);
