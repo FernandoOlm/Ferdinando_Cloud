@@ -413,18 +413,46 @@ if (isGroup && xerifeAtivo(jid)) {
       const duplicado = linkDuplicado(jid, url);
       console.log("📌 Resultado linkDuplicado:", duplicado);
 
-      if (duplicado) {
-        console.log("🚨 LINK DUPLICADO DETECTADO");
+if (duplicado) {
+  console.log("🚨 LINK DUPLICADO DETECTADO");
 
-        if (!isAuthorAdmin && !isRoot) {
-          const strikes = addStrike(jid, fromClean);
-          console.log("🔥 Strikes agora:", strikes);
+  if (!isAuthorAdmin && !isRoot) {
 
-          await sock.sendMessage(jid, { delete: msg.key });
+    const strikes = addStrike(jid, fromClean);
+    console.log("🔥 Strike aplicado:", strikes);
+
+    // DELETE SEGURO
+    try {
+      await sock.sendMessage(jid, {
+        delete: {
+          remoteJid: jid,
+          fromMe: false,
+          id: msg.key.id,
+          participant: msg.key.participant
         }
+      });
+    } catch (e) {
+      console.log("⚠️ Erro ao deletar (ignorando):", e.message);
+    }
 
-        return;
-      }
+    // RESPOSTA SEM FALHA
+    let resposta = "";
+
+    if (strikes === 1) {
+      resposta = "⚠️ Guerreiro… não repete link. Manda outro.";
+    } else if (strikes === 2) {
+      resposta = "🚫 Segunda repetição… tá pedindo pra arrumar confusão?";
+    } else if (strikes >= 3) {
+      resposta = "🚨 Terceira repetição… chamando o admin!";
+    }
+
+    if (resposta) {
+      await sock.sendMessage(jid, { text: resposta });
+    }
+  }
+
+  return;
+}
 
       console.log("🆕 Registrando link novo...");
       registrarLink(jid, url);
