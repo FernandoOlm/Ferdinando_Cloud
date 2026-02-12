@@ -2,81 +2,75 @@
 import fs from "fs";
 import path from "path";
 
-// IMPORT CORRETO → VEM DE /src/core/
 import {
   gerarHashImagem,
   registrarImagem,
   imagemDuplicada
 } from "../core/imageHash.js";
 
-// Caminho correto do arquivo de links
 const linkPath = path.resolve("src/data/links.json");
-
-
-// Caminho do arquivo de autorização de anúncios
 const ANUNCIOS_DB = path.resolve("src/data/anuncios.json");
 
-// ============================================================
-// 🔥 FUNÇÃO NOVA — VERIFICAR SE USUÁRIO PODE ANUNCIAR
-// ============================================================
-export function usuarioPodeAnunciar(grupoId, userId) {
-  try {
-    if (!fs.existsSync(ANUNCIOS_DB)) return false;
+// ================= LINKS =================
 
-    const raw = fs.readFileSync(ANUNCIOS_DB, "utf8");
-    const db = JSON.parse(raw);
-
-    const grupo = db.grupos?.[grupoId];
-    if (!grupo) return false;
-
-    return grupo.autorizados.includes(userId);
-  } catch (e) {
-    console.log("Erro ao validar autorização de anúncio:", e);
-    return false;
-  }
-}
-
-// ============================================================
-// LINKS
-// ============================================================
 function loadLinks() {
+  console.log("📂 LINKS PATH:", linkPath);
+
   if (!fs.existsSync(linkPath)) {
+    console.log("⚠️ links.json não existe. Criando...");
     fs.writeFileSync(linkPath, "{}");
   }
-  return JSON.parse(fs.readFileSync(linkPath, "utf8"));
+
+  const raw = fs.readFileSync(linkPath, "utf8");
+  console.log("📦 Conteúdo links.json:", raw);
+
+  return JSON.parse(raw);
 }
 
 function saveLinks(db) {
   fs.writeFileSync(linkPath, JSON.stringify(db, null, 2));
+  console.log("💾 Links salvos:", db);
 }
 
 export function registrarLink(grupoId, url) {
+  console.log("📝 Registrando link:", grupoId, url);
+
   const db = loadLinks();
   const hoje = new Date().toISOString().slice(0, 10);
+
+  console.log("📅 Data usada:", hoje);
 
   if (!db[grupoId]) db[grupoId] = {};
   if (!db[grupoId][hoje]) db[grupoId][hoje] = [];
 
   db[grupoId][hoje].push(url);
+
   saveLinks(db);
 }
 
 export function linkDuplicado(grupoId, url) {
+  console.log("🔍 Verificando duplicidade:", grupoId, url);
+
   const db = loadLinks();
   const hoje = new Date().toISOString().slice(0, 10);
 
-  if (!db[grupoId] || !db[grupoId][hoje]) return false;
+  console.log("📅 Data usada:", hoje);
 
-  return db[grupoId][hoje].includes(url);
+  if (!db[grupoId] || !db[grupoId][hoje]) {
+    console.log("❌ Nenhum registro para hoje.");
+    return false;
+  }
+
+  const duplicado = db[grupoId][hoje].includes(url);
+
+  console.log("🚨 É duplicado?", duplicado);
+
+  return duplicado;
 }
 
-// ============================================================
-// EXPORTAR AS FUNÇÕES DE IMAGEM JÁ EXISTENTES (INALTERADAS)
-// ============================================================
 export {
   gerarHashImagem,
   registrarImagem,
   imagemDuplicada
 };
-
 // FIM xerifeRegras.js
