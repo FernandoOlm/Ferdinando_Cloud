@@ -361,57 +361,72 @@ sock.ev.on("group-participants.update", async (update) => {
       ctx?.participant === `${BOT_ID}@lid`;
     const marcouID = texto.includes(`@${BOT_ID}`);
 
-
 // ==========================
 // XERIFE → MONITORAMENTO
 // ==========================
+
+console.log("=================================");
+console.log("🚨 XERIFE CHECK");
+console.log("isGroup:", isGroup);
+console.log("jid:", jid);
+console.log("fromClean:", fromClean);
+console.log("xerifeAtivo:", xerifeAtivo(jid));
+console.log("=================================");
+
 if (isGroup && xerifeAtivo(jid)) {
+
+  console.log("✅ ENTROU NO BLOCO DO XERIFE");
+
   const meta = await sock.groupMetadata(jid);
+
   const isAuthorAdmin = meta.participants.some(
     p =>
       p.id.replace(/@.*/, "") === fromClean &&
       (p.admin === "admin" || p.admin === "superadmin")
   );
+
   const isRoot = fromClean === ROOT;
 
+  console.log("👮 isAuthorAdmin:", isAuthorAdmin);
+  console.log("👑 isRoot:", isRoot);
+
+  const textoSeguro =
+    msg.message?.conversation ||
+    msg.message?.extendedTextMessage?.text ||
+    "";
+
+  console.log("📝 Texto capturado:", textoSeguro);
+
   // ==========================
-  // LINKS (Simples e direto)
+  // LINKS
   // ==========================
-  const linksEncontrados = texto.match(/https?:\/\/[^\s]+/gi);
+
+  const linksEncontrados = textoSeguro.match(/https?:\/\/[^\s]+/gi);
+
+  console.log("🔗 Links encontrados:", linksEncontrados);
 
   if (linksEncontrados) {
     for (const url of linksEncontrados) {
 
-      // 1) DUPLICIDADE
-      if (linkDuplicado(jid, url)) {
-        console.log("🔎 XERIFE: Link repetido detectado:", url);
+      console.log("🔎 Verificando URL:", url);
+
+      const duplicado = linkDuplicado(jid, url);
+      console.log("📌 Resultado linkDuplicado:", duplicado);
+
+      if (duplicado) {
+        console.log("🚨 LINK DUPLICADO DETECTADO");
 
         if (!isAuthorAdmin && !isRoot) {
           const strikes = addStrike(jid, fromClean);
+          console.log("🔥 Strikes agora:", strikes);
 
           await sock.sendMessage(jid, { delete: msg.key });
-
-          if (strikes === 1) {
-            await sock.sendMessage(jid, {
-              text: "⚠️ Guerreiro… não repete link. Manda outro."
-            });
-          } else if (strikes === 2) {
-            await sock.sendMessage(jid, {
-              text: "🚫 Segunda repetição… tá pedindo pra arrumar confusão?"
-            });
-          } else if (strikes >= 3) {
-            const admin = meta.participants.find(p => p.admin);
-            await sock.sendMessage(jid, {
-              text: "🚨 Terceira repetição… chamando o 01 dessa porra!",
-              mentions: admin ? [admin.id] : []
-            });
-          }
         }
 
-        return; // ❗ ESSENCIAL
+        return;
       }
 
-      // 2) REGISTRO DE LINK NOVO
+      console.log("🆕 Registrando link novo...");
       registrarLink(jid, url);
     }
   }
@@ -419,49 +434,38 @@ if (isGroup && xerifeAtivo(jid)) {
   // ==========================
   // IMAGENS
   // ==========================
-  if (msg.message.imageMessage) {
+
+  if (msg.message?.imageMessage) {
+
+    console.log("🖼️ Imagem detectada");
 
     const buffer = await downloadMediaMessage(msg, "buffer", {});
     const hash = gerarHashImagem(buffer);
 
-    // --------------------------------------
-    // 🔥 IMAGEM DUPLICADA
-    // --------------------------------------
-    if (imagemDuplicada(jid, hash)) {
-      console.log("🔎 XERIFE: Imagem repetida detectada:", hash);
+    console.log("🔐 Hash:", hash);
+
+    const imgDuplicada = imagemDuplicada(jid, hash);
+    console.log("📌 Resultado imagemDuplicada:", imgDuplicada);
+
+    if (imgDuplicada) {
+      console.log("🚨 IMAGEM DUPLICADA DETECTADA");
 
       if (!isAuthorAdmin && !isRoot) {
         const strikes = addStrike(jid, fromClean);
+        console.log("🔥 Strikes agora:", strikes);
 
         await sock.sendMessage(jid, { delete: msg.key });
-
-        if (strikes === 1) {
-          await sock.sendMessage(jid, {
-            text: "⚠️ Recruta… presta atenção: repetir imagem não é estratégia. Se liga."
-          });
-        } else if (strikes === 2) {
-          await sock.sendMessage(jid, {
-            text: "🚫 Duas vezes no mesmo dia? Quer entrar no saco?"
-          });
-        } else if (strikes >= 3) {
-          const admin = meta.participants.find(p => p.admin);
-          await sock.sendMessage(jid, {
-            text: "🚨 Três vezes? O BOPE tá chegando… segura o rojão.",
-            mentions: admin ? [admin.id] : []
-          });
-        }
       }
 
-      return; // ❗ FUNDAMENTAL – PARA TODO O FLUXO
+      return;
     }
 
-    // --------------------------------------
-    // 🔵 IMAGEM NOVA → REGISTRA e SAI
-    // --------------------------------------
+    console.log("🆕 Registrando imagem nova...");
     registrarImagem(jid, hash);
-    return; // ❗ ESSENCIAL PRA NÃO SUJAR O FLUXO
+    return;
   }
 }
+
 
 
 
