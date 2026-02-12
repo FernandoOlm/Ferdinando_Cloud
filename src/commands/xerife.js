@@ -5,27 +5,17 @@ import path from "path";
 const xerifePath = path.resolve("src/data/xerife.json");
 
 function loadXerife() {
-  console.log("📂 XERIFE PATH:", xerifePath);
-
   if (!fs.existsSync(xerifePath)) {
-    console.log("⚠️ xerife.json não existe. Criando...");
     fs.writeFileSync(xerifePath, JSON.stringify({ grupos: {} }, null, 2));
   }
-
-  const raw = fs.readFileSync(xerifePath, "utf8");
-  console.log("📦 Conteúdo xerife.json:", raw);
-
-  return JSON.parse(raw);
+  return JSON.parse(fs.readFileSync(xerifePath, "utf8"));
 }
 
 function saveXerife(db) {
   fs.writeFileSync(xerifePath, JSON.stringify(db, null, 2));
-  console.log("💾 Xerife salvo:", db);
 }
 
 export function ativarXerife(grupoId) {
-  console.log("🔫 Ativando xerife para:", grupoId);
-
   const db = loadXerife();
 
   db.grupos[grupoId] = {
@@ -41,16 +31,28 @@ export function ativarXerife(grupoId) {
   };
 }
 
-export function xerifeAtivo(grupoId) {
+export function desativarXerife(grupoId) {
   const db = loadXerife();
 
-  console.log("🔎 Verificando xerife para grupo:", grupoId);
-  console.log("📊 DB atual:", db.grupos);
+  if (!db.grupos[grupoId]) {
+    return {
+      status: "ok",
+      mensagem: "🛑 Xerife já estava desligado."
+    };
+  }
 
-  const ativo = db.grupos[grupoId]?.ativo === true;
+  db.grupos[grupoId].ativo = false;
 
-  console.log("✅ Xerife ativo?", ativo);
+  saveXerife(db);
 
-  return ativo;
+  return {
+    status: "ok",
+    mensagem: "🛑 *Xerife desativado!*"
+  };
+}
+
+export function xerifeAtivo(grupoId) {
+  const db = loadXerife();
+  return db.grupos[grupoId]?.ativo === true;
 }
 // FIM xerife.js
