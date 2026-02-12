@@ -344,39 +344,72 @@ const raw = msg.key.participant || msg.key.remoteJid;
 let fromClean = raw.replace(/@.*/, "");
 
 // =====================================================
-// PV → VERIFICAR BANIMENTO E RESPONDER COM IA
+// PV → SISTEMA AUTOMATIZADO COM IA
 // =====================================================
 if (!isGroup) {
 
   const bansPath = path.resolve("src/data/bans.json");
+  const textoLower = texto.toLowerCase();
 
+  let mensagemSistema = null;
+
+  // ---------------- BAN GLOBAL ----------------
   if (fs.existsSync(bansPath)) {
     const bansDB = JSON.parse(fs.readFileSync(bansPath, "utf8"));
-
     const banGlobal = bansDB.global?.find(b => b.alvo === fromClean);
 
     if (banGlobal) {
+      mensagemSistema = `
+🚨 Sistema Automatizado Ferdinando
 
-      const respostaIA = await clawBrainProcess_Unique01({
-        tipo: "comando",
-        comando: "ban-info",
-        dados: {
-          mensagem: `
-Você está falando com uma Inteligência Artificial.
+Sou um BOT.
+Não sou humano.
+
 Seu acesso foi bloqueado.
-Motivo: ${banGlobal.motivo}.
+Motivo registrado: ${banGlobal.motivo}.
 Grupo de origem: ${banGlobal.grupoOrigem}.
-Se acredita que foi um erro, fale com um administrador.
-          `
-        }
-      });
 
-      await sock.sendMessage(jid, { text: respostaIA });
+Não existe julgamento.
+Existe regra programada.
 
-      return; // 🔥 trava o fluxo aqui
+🤖 Fim da resposta automática.
+      `;
     }
   }
+
+  // ---------------- PROTOCOLO DE SEGURANÇA ----------------
+  if (!mensagemSistema && textoLower.includes("sou de menor")) {
+    mensagemSistema = `
+🚨 Sistema Automatizado Ferdinando
+
+Sou um BOT.
+Não sou humano.
+
+Palavra sensível detectada na conversa.
+Protocolo de segurança foi ativado automaticamente.
+
+Não existe opinião.
+Existe detecção de padrão textual.
+
+🤖 Atendimento automático continua.
+    `;
+  }
+
+  // ---------------- SE PRECISAR RESPONDER ----------------
+  if (mensagemSistema) {
+
+    const respostaIA = await clawBrainProcess_Unique01({
+      tipo: "comando",
+      comando: "sistema",
+      dados: { mensagem: mensagemSistema }
+    });
+
+    await sock.sendMessage(jid, { text: respostaIA });
+
+    return;
+  }
 }
+
 
 // ==========================
 // XERIFE → MONITORAMENTO
