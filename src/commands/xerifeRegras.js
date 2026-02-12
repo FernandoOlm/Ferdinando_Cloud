@@ -10,7 +10,8 @@ import {
 } from "../core/imageHash.js";
 
 // Caminho correto do arquivo de links
-const linkPath = path.join("src", "data", "links.json");
+const linkPath = path.resolve("src/data/links.json");
+
 
 // Caminho do arquivo de autorização de anúncios
 const ANUNCIOS_DB = path.resolve("src/data/anuncios.json");

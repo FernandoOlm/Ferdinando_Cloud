@@ -2,7 +2,7 @@
 import fs from "fs";
 import path from "path";
 
-const xerifePath = path.join("src", "data", "xerife.json");
+const xerifePath = path.resolve("src/data/xerife.json");
 
 function loadXerife() {
   if (!fs.existsSync(xerifePath)) {

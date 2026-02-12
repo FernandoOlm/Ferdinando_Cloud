@@ -2,7 +2,8 @@
 import fs from "fs";
 import path from "path";
 
-const strikesPath = path.join("src", "data", "xerifeStrikes.json");
+const strikesPath = path.resolve("src/data/xerifeStrikes.json");
+
 
 // garante o arquivo
 function loadDB() {
