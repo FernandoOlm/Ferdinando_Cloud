@@ -340,26 +340,43 @@ sock.ev.on("group-participants.update", async (update) => {
       msg.message.conversation ||
       msg.message.extendedTextMessage?.text ||
       "[Mídia]";
+const raw = msg.key.participant || msg.key.remoteJid;
+let fromClean = raw.replace(/@.*/, "");
 
-    const raw = msg.key.participant || msg.key.remoteJid;
-    let fromClean = raw.replace(/@.*/, "");
+// =====================================================
+// PV → VERIFICAR BANIMENTO E RESPONDER COM IA
+// =====================================================
+if (!isGroup) {
 
-    let groupName = "";
-    if (isGroup) {
-      try {
-        const meta = await sock.groupMetadata(jid);
-        groupName = meta.subject;
-      } catch {
-        groupName = "Grupo";
-      }
+  const bansPath = path.resolve("src/data/bans.json");
+
+  if (fs.existsSync(bansPath)) {
+    const bansDB = JSON.parse(fs.readFileSync(bansPath, "utf8"));
+
+    const banGlobal = bansDB.global?.find(b => b.alvo === fromClean);
+
+    if (banGlobal) {
+
+      const respostaIA = await clawBrainProcess_Unique01({
+        tipo: "comando",
+        comando: "ban-info",
+        dados: {
+          mensagem: `
+Você está falando com uma Inteligência Artificial.
+Seu acesso foi bloqueado.
+Motivo: ${banGlobal.motivo}.
+Grupo de origem: ${banGlobal.grupoOrigem}.
+Se acredita que foi um erro, fale com um administrador.
+          `
+        }
+      });
+
+      await sock.sendMessage(jid, { text: respostaIA });
+
+      return; // 🔥 trava o fluxo aqui
     }
-    console.log(formatLog(msg, texto, isGroup, groupName, fromClean));
-    const BOT_ID = "63755148890155";
-    const ctx = msg.message?.extendedTextMessage?.contextInfo;
-    const repliedToBot =
-      ctx?.participant === `${BOT_ID}@s.whatsapp.net` ||
-      ctx?.participant === `${BOT_ID}@lid`;
-    const marcouID = texto.includes(`@${BOT_ID}`);
+  }
+}
 
 // ==========================
 // XERIFE → MONITORAMENTO
