@@ -100,11 +100,15 @@ async function processarIANormal(msgObj) {
 // ------------------ CENTRAL ------------------
 export async function clawBrainProcess_Unique01(msgObj) {
 
-  // 🔥 SISTEMA PV PRIMEIRO
+  // 🔥 SISTEMA PV PRIORIDADE ABSOLUTA
   const sistemaPV = await verificarSistemaPV(msgObj);
-  if (sistemaPV) return sistemaPV;
 
-  // 🔥 COMANDO JSON
+  if (sistemaPV) {
+    return sistemaPV; // ← SAI AQUI E NÃO CONTINUA
+  }
+
+  // 🔥 SE NÃO FOR SISTEMA, SEGUE NORMAL
+
   if (msgObj?.tipo === "comando" && msgObj?.comando) {
     const r = await aiGenerateReply_Unique01(
       `Comando "${msgObj.comando}". Dados: ${JSON.stringify(msgObj.dados)}`
@@ -112,8 +116,5 @@ export async function clawBrainProcess_Unique01(msgObj) {
     return compactarResposta_Unique01(r);
   }
 
-  // 🔥 IA NORMAL
   return await processarIANormal(msgObj);
 }
-
-// FIM clawBrain.js
