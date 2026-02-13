@@ -1,6 +1,8 @@
 // INÍCIO cadastroAll.js — /cadastro-all
 
 import fs from "fs";
+import path from "path";
+
 const AUTH_PATH = path.resolve("src/data/auth/allowed.json");
 
 function loadJSON() {
