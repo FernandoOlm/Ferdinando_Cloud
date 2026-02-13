@@ -1,4 +1,4 @@
-// INÍCIO clawBrain.js — IA Pura + Sistema PV
+// INÍCIO clawBrain.js — IA + Sistema Profissional
 
 import fs from "fs";
 import path from "path";
@@ -21,7 +21,7 @@ function compactarResposta_Unique01(t) {
 async function verificarSistemaPV(msgObj) {
 
   const jid = msgObj?.key?.remoteJid;
-  if (!jid || jid.endsWith("@g.us")) return null; // só PV
+  if (!jid || jid.endsWith("@g.us")) return null;
 
   const raw = msgObj?.key?.participant || jid;
   const fromClean = raw.replace(/@.*/, "");
@@ -33,39 +33,19 @@ async function verificarSistemaPV(msgObj) {
 
   const textoLower = texto.toLowerCase();
 
-  // --------- BAN GLOBAL ---------
   const bansPath = path.resolve("src/data/bans.json");
+
   if (fs.existsSync(bansPath)) {
     const bansDB = JSON.parse(fs.readFileSync(bansPath, "utf8"));
     const banGlobal = bansDB.global?.find(b => b.alvo === fromClean);
 
     if (banGlobal) {
-      const resposta = await aiGenerateReply_Unique01(`
-Responda como sistema automatizado institucional.
-Deixe claro que é uma Inteligência Artificial.
-Informe que o acesso foi bloqueado automaticamente.
-Motivo: ${banGlobal.motivo}.
-Não demonstre emoção.
-Finalize dizendo que o atendimento automático continua.
-      `);
-
-      return compactarResposta_Unique01(resposta);
+      return "Seu acesso foi bloqueado. Contate a administração.";
     }
   }
 
-  // --------- PALAVRA SENSÍVEL ---------
   if (textoLower.includes("sou de menor")) {
-
-    const resposta = await aiGenerateReply_Unique01(`
-Responda como sistema automatizado.
-Informe que uma palavra sensível foi detectada.
-Explique que o protocolo de segurança foi ativado automaticamente.
-Deixe claro que é uma Inteligência Artificial.
-Não demonstre julgamento.
-Finalize dizendo que o atendimento automático continua.
-    `);
-
-    return compactarResposta_Unique01(resposta);
+    return "Protocolo de segurança ativado.";
   }
 
   return null;
@@ -80,14 +60,11 @@ async function processarIANormal(msgObj) {
     "";
 
   const jid = msgObj?.key?.remoteJid;
-  if (!jid) return "";
+  if (!jid || !texto) return "";
 
   if (texto.toLowerCase().includes("amigo")) {
     setFriend(jid);
-    const r = await aiGenerateReply_Unique01(
-      "Responda em 1 linha confirmando amizade."
-    );
-    return compactarResposta_Unique01(r);
+    return "Registro confirmado.";
   }
 
   const acao = await executarAcoesAutomaticas_Unique01(texto, jid);
@@ -100,21 +77,30 @@ async function processarIANormal(msgObj) {
 // ------------------ CENTRAL ------------------
 export async function clawBrainProcess_Unique01(msgObj) {
 
-  // 🔥 SISTEMA PV PRIORIDADE ABSOLUTA
+  // 🔥 1️⃣ Sistema PV tem prioridade
   const sistemaPV = await verificarSistemaPV(msgObj);
+  if (sistemaPV) return sistemaPV;
 
-  if (sistemaPV) {
-    return sistemaPV; // ← SAI AQUI E NÃO CONTINUA
-  }
-
-  // 🔥 SE NÃO FOR SISTEMA, SEGUE NORMAL
-
+  // 🔥 2️⃣ COMANDOS NÃO PASSAM PELA IA
   if (msgObj?.tipo === "comando" && msgObj?.comando) {
-    const r = await aiGenerateReply_Unique01(
-      `Comando "${msgObj.comando}". Dados: ${JSON.stringify(msgObj.dados)}`
-    );
-    return compactarResposta_Unique01(r);
+
+    const dados = msgObj?.dados || {};
+
+    // Caso comando já tenha formatado resposta estruturada
+    if (typeof dados === "string") return dados;
+
+    if (dados?.mensagem) return dados.mensagem;
+    if (dados?.texto) return dados.texto;
+    if (dados?.anuncioIA) return dados.anuncioIA;
+    if (dados?.despedida) return dados.despedida;
+
+    if (dados?.motivo) return "Operação não permitida.";
+
+    return "Comando executado.";
   }
 
+  // 🔥 3️⃣ Conversa normal
   return await processarIANormal(msgObj);
 }
+
+// FIM clawBrain.js
