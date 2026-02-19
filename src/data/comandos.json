@@ -158,6 +158,16 @@
   "file": "../commands/sorteio.js",
   "function": "comandoSorteio",
   "admin": true
+},
+"!listar-lembretes": {
+  "file": "../commands/listar-lembretes.js",
+  "function": "cmdListarLembretes",
+  "admin": true
+},
+"!apagar-lembrete": {
+  "file": "../commands/apagar-lembrete.js",
+  "function": "cmdApagarLembrete",
+  "admin": true
 }
 
 }
