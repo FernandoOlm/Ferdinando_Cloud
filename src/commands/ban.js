@@ -166,18 +166,21 @@ export async function bansGrupo(msg, sock, fromClean) {
     mensagem: texto,
   };
 }
-
 /* ---------------------------------------------------
-   /globalbans — com nome dos grupos
+   /globalbans — com nome dos grupos (FIXED)
 --------------------------------------------------- */
 export async function bansGlobais(msg, sock, fromClean) {
+  const chatId = msg.key.remoteJid;
   const bans = loadBans();
 
   if (!bans.global.length) {
+    const texto = "🌍 *Bans Globais*\n\nNenhum ban global registrado.";
+    await sock.sendMessage(chatId, { text: texto });
+
     return {
       status: "ok",
       tipo: "globalbans",
-      mensagem: "🌍 *Bans Globais*\n\nNenhum ban global registrado.",
+      mensagem: texto
     };
   }
 
@@ -199,13 +202,15 @@ export async function bansGlobais(msg, sock, fromClean) {
     texto += `  Grupo: ${grupoId.replace("@g.us", "")} — ${nomeGrupo}\n\n`;
   }
 
+  // 🔥 ENVIA DIRETO NO WHATSAPP
+  await sock.sendMessage(chatId, { text: texto });
+
   return {
     status: "ok",
     tipo: "globalbans",
-    mensagem: texto,
+    mensagem: texto
   };
 }
-
 /* ---------------------------------------------------
    Alerta: banido entrou no grupo
 --------------------------------------------------- */
