@@ -47,7 +47,7 @@ export function ativarXerife(msg) {
 
   saveXerife(db);
 
-  console.log("🔫 Xerife ativado para:", grupoId);
+  //console.log("🔫 Xerife ativado para:", grupoId);
 
   return {
     status: "ok",
@@ -80,7 +80,7 @@ export function desativarXerife(msg) {
 
   saveXerife(db);
 
-  console.log("🛑 Xerife desativado para:", grupoId);
+  //console.log("🛑 Xerife desativado para:", grupoId);
 
   return {
     status: "ok",
@@ -95,7 +95,7 @@ export function xerifeAtivo(grupoId) {
   const db = loadXerife();
   const ativo = db.grupos[grupoId]?.ativo === true;
 
-  console.log("🔎 Checando xerife:", grupoId, "→", ativo);
+//  console.log("🔎 Checando xerife:", grupoId, "→", ativo);
 
   return ativo;
 }
