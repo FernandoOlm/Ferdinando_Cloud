@@ -141,11 +141,9 @@ export function lerBV(grupoId) {
 const ROOT = process.env.ROOT_ID;
 
 
-/* INÍCIO LOGGER FERNANDO CLEAN */
 
-// --------------------------------------------------------
-// LOGGER MUDO (BAILEYS)
-// --------------------------------------------------------
+
+// LOGGER MUDO
 const logger = {
   info: () => {},
   warn: () => {},
@@ -155,49 +153,65 @@ const logger = {
   fatal: () => {},
   child: () => logger,
 };
-
+// CORES
+const C = {
+  reset: "\x1b[0m",
+  cyan: "\x1b[36m",
+  yellow: "\x1b[33m",
+  magenta: "\x1b[35m",
+  green: "\x1b[32m",
+  white: "\x1b[37m",
+  red: "\x1b[31m",
+};
+ensureAuthFile();
 // --------------------------------------------------------
-// LOG BONITO — FORMATO PROFISSIONAL
+// LOG BONITO
 // --------------------------------------------------------
-function formatLog(msg, textoOriginal, isGroup, groupName, fromClean) {
+function formatLog(msg, texto, isGroup, groupName, fromClean) {
   const d = new Date();
   const DD = String(d.getDate()).padStart(2, "0");
   const MM = String(d.getMonth() + 1).padStart(2, "0");
   const YY = String(d.getFullYear()).slice(2);
   const HH = String(d.getHours()).padStart(2, "0");
   const mm = String(d.getMinutes()).padStart(2, "0");
+  const SS = String(d.getSeconds()).padStart(2, "0");
+  const stamp = `${C.cyan}| ${DD}.${MM}.${YY} ${HH}:${mm}:${SS} |`;
+  const pretty =
+    "+55 " +
+    fromClean.slice(2, 4) +
+    " " +
+    fromClean.slice(4, 9) +
+    "-" +
+    fromClean.slice(9);
 
-  const stamp = `${DD}/${MM}/${YY} ${HH}:${mm}`;
-
-  const pessoaNome = msg.pushName || "SemNome";
-  const pessoaId = fromClean;
-
-  // detectar mídia
-  const isMidia =
-    msg.message?.imageMessage ||
-    msg.message?.videoMessage ||
-    msg.message?.stickerMessage ||
-    msg.message?.audioMessage ||
-    msg.message?.documentMessage;
-
-  const texto = isMidia ? "Midia" : textoOriginal;
-
-  // --------------------------------------------------------
-  // GRUPO
-  // --------------------------------------------------------
   if (isGroup) {
-    const grupoId = msg.key.remoteJid;
-
-    return `| ${stamp} | GRP | ${grupoId} | ${groupName} | ${pessoaId} | ${pessoaNome} | ${texto}`;
+    return (
+      stamp +
+      C.yellow +
+      " GRUPO | " +
+      C.magenta +
+      `${msg.key.remoteJid} | ` +
+      C.green +
+      `${groupName} | ${fromClean} | ${pretty} | ${msg.pushName} | ` +
+      C.white +
+      texto +
+      C.reset
+    );
   }
-
-  // --------------------------------------------------------
-  // PV
-  // --------------------------------------------------------
-  return `| ${stamp} | PV | ${pessoaId} | ${pessoaNome} | ${texto}`;
+  return (
+    stamp +
+    C.yellow +
+    " PV | " +
+    C.magenta +
+    `${fromClean} | ` +
+    C.green +
+    `${pretty} | ${msg.pushName} | ` +
+    C.white +
+    texto +
+    C.reset
+  );
 }
 
-/* FIM LOGGER FERNANDO CLEAN */
 
 
 // --------------------------------------------------------
