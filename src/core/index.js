@@ -405,13 +405,13 @@ Finalize dizendo que o atendimento automático continua.
 // XERIFE → MONITORAMENTO
 // ==========================
 
-console.log("=================================");
-console.log("🚨 XERIFE CHECK");
-console.log("isGroup:", isGroup);
-console.log("jid:", jid);
-console.log("fromClean:", fromClean);
-console.log("xerifeAtivo:", xerifeAtivo(jid));
-console.log("=================================");
+// console.log("=================================");
+// console.log("🚨 XERIFE CHECK");
+// console.log("isGroup:", isGroup);
+// console.log("jid:", jid);
+// console.log("fromClean:", fromClean);
+// console.log("xerifeAtivo:", xerifeAtivo(jid));
+// console.log("=================================");
 
 if (isGroup && xerifeAtivo(jid)) {
 
