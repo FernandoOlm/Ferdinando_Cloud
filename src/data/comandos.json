@@ -174,29 +174,30 @@
   "function": "addRef",
   "admin": true
 },
-
 "!add-alerta": {
   "file": "../commands/reputacao.js",
   "function": "addAlerta",
   "admin": true
 },
-
 "!redflag": {
   "file": "../commands/reputacao.js",
   "function": "addRedflag",
   "admin": true
 },
-
 "!dados": {
   "file": "../commands/reputacao.js",
   "function": "dados",
   "admin": false
 },
-
 "!status": {
   "file": "../commands/reputacao.js",
   "function": "status",
   "admin": false
+},
+"!banir": {
+  "file": "../commands/reputacao.js",
+  "function": "banirVcard",
+  "admin": true
 }
 
 }
