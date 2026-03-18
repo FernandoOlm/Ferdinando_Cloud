@@ -684,17 +684,18 @@ function loadComandosJSON() {
 
     let dados;
     try {
-      const aridade = fn.length;
+      dados = await fn(msg, sock, fromClean, args);
+      // const aridade = fn.length;
 
-      if (aridade === 2) {
-        dados = await fn(msg, sock);
-      } else if (aridade === 3) {
-        dados = await fn(msg, sock, fromClean);
-      } else if (aridade === 4) {
-        dados = await fn(msg, sock, fromClean, args);
-      } else {
-        dados = await fn(msg, sock, fromClean, args);
-      }
+      // if (aridade === 2) {
+      //   dados = await fn(msg, sock);
+      // } else if (aridade === 3) {
+      //   dados = await fn(msg, sock, fromClean);
+      // } else if (aridade === 4) {
+      //   dados = await fn(msg, sock, fromClean, args);
+      // } else {
+      //   dados = await fn(msg, sock, fromClean, args);
+      // }
     } catch (e) {
       await sock.sendMessage(jid, { text: "Erro ao executar comando." });
       console.log("Erro comando sem IA:", cmd, e);
@@ -751,17 +752,22 @@ function loadComandosJSON() {
 
     let dados;
     try {
-      const aridade = fn.length;
 
-      if (aridade === 2) {
-        dados = await fn(msg, sock);
-      } else if (aridade === 3) {
-        dados = await fn(msg, sock, fromClean);
-      } else if (aridade === 4) {
-        dados = await fn(msg, sock, fromClean, args);
-      } else {
-        dados = await fn(msg, sock, fromClean, args);
-      }
+      dados = await fn(msg, sock, fromClean, args);
+      // const aridade = fn.length;
+
+      // if (aridade === 2) {
+      //   dados = await fn(msg, sock);
+      // } else if (aridade === 3) {
+      //   dados = await fn(msg, sock, fromClean);
+      // } else if (aridade === 4) {
+      //   dados = await fn(msg, sock, fromClean, args);
+      // } else {
+      //   dados = await fn(msg, sock, fromClean, args);
+      // }
+
+
+
     } catch (e) {
       await sock.sendMessage(jid, { text: "Erro ao executar comando." });
       console.log("Erro comando IA:", cmd, e);
