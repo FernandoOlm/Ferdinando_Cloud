@@ -747,7 +747,7 @@ function loadComandosJSON() {
     // import quente
     const modulo = await hotImport(cfg.file);
     const fn = modulo[cfg.function];
-    const args = texto.split(" ").slice(1);
+    const args = texto ? texto.trim().split(/\s+/).slice(1) : [];
 
     let dados;
     try {
