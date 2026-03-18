@@ -1,7 +1,7 @@
 // INÍCIO comandoPing
 export function comandoPing(msg, sock) {
   return {
-    mensagem: "Pong!"
+    mensagem: "Pingado cuzão!"
   };
 }
 // FIM comandoPing
