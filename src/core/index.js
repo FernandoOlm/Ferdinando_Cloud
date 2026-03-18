@@ -9,7 +9,7 @@ import fs from "fs";
 import path from "path";
 
 //inicio Importação de comandos
-import { botLoggerRegisterEvent_Unique01 } from "../core/logger.js";
+import { botLoggerRegisterEvent_Unique01 } from "../utils/logger.js";
 import { clawBrainProcess_Unique01 } from "./clawBrain.js";
 import { autorizarUsuario, ensureAuthFile } from "../commands/auth.js";
 //import { comandoAll } from "../commands/all.js";
