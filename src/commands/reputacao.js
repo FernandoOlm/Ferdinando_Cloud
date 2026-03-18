@@ -30,38 +30,61 @@ function saveDB(db) {
 }
 
 // ================================
-// 🔥 EXTRATOR UNIVERSAL
+// 🔥 EXTRATOR UNIVERSAL (BLINDADO)
 // ================================
 function extrairNumerosUniversal(msg) {
   const numeros = new Set();
 
-  // contato direto
-  if (msg.message?.contactMessage) {
-    const v = msg.message.contactMessage.vcard;
-    const m = v.match(/waid=(\d+)/);
-    if (m) numeros.add(m[1]);
-  }
+  let m = msg.message;
 
-  // contato citado
-  if (msg.message?.extendedTextMessage?.contextInfo?.quotedMessage?.contactMessage) {
-    const v =
-      msg.message.extendedTextMessage.contextInfo.quotedMessage.contactMessage.vcard;
-    const m = v.match(/waid=(\d+)/);
-    if (m) numeros.add(m[1]);
+  // unwrap mensagens escondidas
+  if (m?.ephemeralMessage) m = m.ephemeralMessage.message;
+  if (m?.viewOnceMessage) m = m.viewOnceMessage.message;
+
+  const pegarNumero = (vcard) => {
+    if (!vcard) return;
+
+    // padrão ideal
+    let match = vcard.match(/waid=(\d+)/);
+    if (match) {
+      numeros.add(match[1]);
+      return;
+    }
+
+    // fallback bruto
+    const nums = vcard.match(/\d{10,15}/g);
+    if (nums) nums.forEach(n => numeros.add(n));
+  };
+
+  // contato único
+  if (m?.contactMessage) {
+    pegarNumero(m.contactMessage.vcard);
   }
 
   // múltiplos contatos
-  if (msg.message?.contactsArrayMessage) {
-    for (const c of msg.message.contactsArrayMessage.contacts) {
-      const m = c.vcard.match(/waid=(\d+)/);
-      if (m) numeros.add(m[1]);
+  if (m?.contactsArrayMessage) {
+    for (const c of m.contactsArrayMessage.contacts) {
+      pegarNumero(c.vcard);
+    }
+  }
+
+  // quoted (respondido)
+  const quoted = m?.extendedTextMessage?.contextInfo?.quotedMessage;
+
+  if (quoted?.contactMessage) {
+    pegarNumero(quoted.contactMessage.vcard);
+  }
+
+  if (quoted?.contactsArrayMessage) {
+    for (const c of quoted.contactsArrayMessage.contacts) {
+      pegarNumero(c.vcard);
     }
   }
 
   // texto manual
   const texto =
-    msg.message?.conversation ||
-    msg.message?.extendedTextMessage?.text ||
+    m?.conversation ||
+    m?.extendedTextMessage?.text ||
     "";
 
   const encontrados = texto.match(/\d{10,15}/g);
