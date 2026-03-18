@@ -1,5 +1,5 @@
 // ================================
-// INÍCIO - reputacao LGPD SAFE
+// INÍCIO - reputacao.js LGPD SAFE FINAL
 // ================================
 
 import fs from "fs";
@@ -36,7 +36,7 @@ function saveDB(db) {
 }
 
 // ================================
-// HASH POR GRUPO (ANTI-RADAR)
+// HASH POR GRUPO
 // ================================
 function hashNumero(numero, grupo) {
   return crypto
@@ -48,13 +48,13 @@ function hashNumero(numero, grupo) {
 // ================================
 // LIMPEZA AUTOMÁTICA
 // ================================
-function limpar(registros) {
+function limpar(lista) {
   const agora = Date.now();
-  return registros.filter(r => agora - r.data < LIMITE_DIAS * 86400000);
+  return lista.filter(r => agora - r.data < LIMITE_DIAS * 86400000);
 }
 
 // ================================
-// EXTRATOR (igual ao seu)
+// EXTRATOR UNIVERSAL
 // ================================
 function extrairNumerosUniversal(msg) {
   const numeros = new Set();
@@ -65,6 +65,7 @@ function extrairNumerosUniversal(msg) {
 
   const pegarNumero = (vcard) => {
     if (!vcard) return;
+
     let match = vcard.match(/waid=(\d+)/);
     if (match) return numeros.add(match[1]);
 
@@ -92,108 +93,170 @@ function extrairNumerosUniversal(msg) {
 }
 
 // ================================
-// PROCESSAR (ISOLADO POR GRUPO)
+// CATEGORIAS
 // ================================
-async function processar(msg, tipo, textoMotivo) {
-  const numeros = extrairNumerosUniversal(msg);
-  if (!numeros.length) return { texto: "Nenhum número encontrado." };
+const CATEGORIAS = {
+  golpista: "golpista",
+  "nao-paga": "nao_pagou_leilao",
+  "ref-falsa": "referencias_falsas",
+  comportamento: "comportamento"
+};
 
-  const db = loadDB();
-  const grupo = msg.key.remoteJid;
+// ================================
+// GARANTE ESTRUTURA DO USUÁRIO
+// ================================
+function criarBase() {
+  return {
+    golpista: [],
+    nao_pagou_leilao: [],
+    referencias_falsas: [],
+    comportamento: []
+  };
+}
 
-  if (!db[grupo]) db[grupo] = {};
+// ================================
+// COMANDO PRINCIPAL - BANIR
+// ================================
+export async function banirCategoria(msg, sock, from, args) {
+  try {
+    if (!msg.key.remoteJid.includes("@g.us")) {
+      return { texto: "❌ Comando apenas para grupos." };
+    }
 
-  for (const numero of numeros) {
-    const id = hashNumero(numero, grupo);
+    if (!args || args.length === 0) {
+      return {
+        texto: `❌ Use: !banir [categoria]
 
-    if (!db[grupo][id]) {
-      db[grupo][id] = {
-        referencias: [],
-        alertas: [],
-        redflags: []
+Categorias:
+- golpista
+- nao-paga
+- ref-falsa
+- comportamento`
       };
     }
 
-    const registro = {
-      texto: textoMotivo || "Sem descrição",
-      data: Date.now()
+    const tipoInput = args[0].toLowerCase().trim();
+    const categoria = CATEGORIAS[tipoInput];
+
+    if (!categoria) {
+      return {
+        texto: `❌ Categoria inválida.
+
+Use:
+- golpista
+- nao-paga
+- ref-falsa
+- comportamento`
+      };
+    }
+
+    const numeros = extrairNumerosUniversal(msg);
+
+    if (!numeros.length) {
+      return { texto: "❌ Nenhum número encontrado." };
+    }
+
+    const db = loadDB();
+    const grupo = msg.key.remoteJid;
+
+    if (!db[grupo]) db[grupo] = {};
+
+    let total = 0;
+
+    for (const numero of numeros) {
+      const id = hashNumero(numero, grupo);
+
+      if (!db[grupo][id]) {
+        db[grupo][id] = criarBase();
+      }
+
+      db[grupo][id][categoria].push({
+        motivo: args.slice(1).join(" ") || "Sem descrição",
+        data: Date.now()
+      });
+
+      db[grupo][id][categoria] = limpar(db[grupo][id][categoria]);
+
+      total++;
+    }
+
+    saveDB(db);
+
+    return {
+      texto: `🚫 ${total} usuário(s) marcado(s) como *${tipoInput}*`
     };
 
-    db[grupo][id][tipo].push(registro);
-
-    // limpeza
-    db[grupo][id][tipo] = limpar(db[grupo][id][tipo]);
+  } catch (err) {
+    console.error("ERRO BANIR:", err);
+    return { texto: "❌ Erro ao executar comando." };
   }
-
-  saveDB(db);
-
-  return { texto: `✅ Aplicado em ${numeros.length} usuário(s)` };
 }
 
 // ================================
 // STATUS
 // ================================
 function calcularStatus(dados) {
-  const pos = dados.referencias.length;
-  const neg = dados.alertas.length;
-  const red = dados.redflags.length;
+  const g = dados.golpista.length;
+  const l = dados.nao_pagou_leilao.length;
+  const r = dados.referencias_falsas.length;
+  const c = dados.comportamento.length;
 
-  const score = pos - neg * 2 - red * 5;
+  const score = -(g * 5 + l * 3 + r * 4 + c);
 
   let nivel = "NEUTRO";
-  if (score >= 3) nivel = "CONFIÁVEL ✅";
-  if (score < 0) nivel = "RISCO ⚠️";
-  if (score <= -5) nivel = "ALTO RISCO 🚨";
 
-  return { pos, neg, red, score, nivel };
+  if (g > 0) nivel = "GOLPISTA 🚨";
+  else if (score <= -5) nivel = "ALTO RISCO ⚠️";
+  else if (score < 0) nivel = "RISCO";
+
+  return { g, l, r, c, score, nivel };
 }
 
 // ================================
-// DADOS
+// CONSULTA
 // ================================
 export async function dados(msg) {
-  const numeros = extrairNumerosUniversal(msg);
-  if (!numeros.length) return { texto: "Nenhum número encontrado." };
+  try {
+    const numeros = extrairNumerosUniversal(msg);
 
-  const db = loadDB();
-  const grupo = msg.key.remoteJid;
+    if (!numeros.length) {
+      return { texto: "❌ Nenhum número encontrado." };
+    }
 
-  if (!db[grupo]) return { texto: "Nenhum registro encontrado." };
+    const db = loadDB();
+    const grupo = msg.key.remoteJid;
 
-  const id = hashNumero(numeros[0], grupo);
-  const dados = db[grupo][id];
+    if (!db[grupo]) {
+      return { texto: "Nenhum registro encontrado." };
+    }
 
-  if (!dados) return { texto: "Nenhum registro encontrado." };
+    const id = hashNumero(numeros[0], grupo);
+    const dados = db[grupo][id];
 
-  const status = calcularStatus(dados);
+    if (!dados) {
+      return { texto: "Nenhum registro encontrado." };
+    }
 
-  return {
-    texto: `📊 Histórico no grupo
+    const s = calcularStatus(dados);
 
-⭐ ${status.pos} referências
-⚠️ ${status.neg} alertas
-🚫 ${status.red} redflags
+    return {
+      texto: `📊 Histórico no grupo
 
-Score: ${status.score}
-Status: ${status.nivel}
+🚨 Golpista: ${s.g}
+💸 Não pagou leilão: ${s.l}
+❌ Referências falsas: ${s.r}
+⚠️ Comportamento: ${s.c}
+
+Score: ${s.score}
+Status: ${s.nivel}
 
 ⚠️ Sistema interno do grupo`
-  };
-}
+    };
 
-// ================================
-// COMANDOS
-// ================================
-export async function addRef(msg, sock, from, args) {
-  return processar(msg, "referencias", args.join(" "));
-}
-
-export async function addAlerta(msg, sock, from, args) {
-  return processar(msg, "alertas", args.join(" "));
-}
-
-export async function addRedflag(msg, sock, from, args) {
-  return processar(msg, "redflags", args.join(" "));
+  } catch (err) {
+    console.error("ERRO DADOS:", err);
+    return { texto: "❌ Erro ao consultar." };
+  }
 }
 
 // ================================
