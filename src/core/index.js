@@ -9,6 +9,7 @@ import fs from "fs";
 import path from "path";
 
 //inicio Importação de comandos
+import { botLoggerRegisterEvent_Unique01 } from "../core/logger.js";
 import { clawBrainProcess_Unique01 } from "./clawBrain.js";
 import { autorizarUsuario, ensureAuthFile } from "../commands/auth.js";
 //import { comandoAll } from "../commands/all.js";
@@ -322,43 +323,52 @@ sock.ev.on("group-participants.update", async (update) => {
   }
 });
 
+// --------------------------------------------------------
+// MENSAGENS
+// --------------------------------------------------------
+sock.ev.on("messages.upsert", async ({ messages }) => {
+  const msg = messages[0];
+  if (!msg?.message) return;
+  if (msg.key.fromMe) return;
 
-  // --------------------------------------------------------
-  // MENSAGENS
-  // --------------------------------------------------------
-  sock.ev.on("messages.upsert", async ({ messages }) => {
-    const msg = messages[0];
-    if (!msg?.message) return;
-    if (msg.key.fromMe) return;
+  // 🔥 SALVA LOG (ANTES DE QUALQUER COISA)
+  try {
+    botLoggerRegisterEvent_Unique01(msg);
+  } catch (e) {
+    console.log("Erro ao salvar log:", e);
+  }
 
-    const jid = msg.key.remoteJid;
-    const isGroup = jid.endsWith("@g.us");
+  const jid = msg.key.remoteJid;
+  const isGroup = jid.endsWith("@g.us");
 
-    const texto =
-      msg.message.conversation ||
-      msg.message.extendedTextMessage?.text ||
-      "[Mídia]";
+  const texto =
+    msg.message.conversation ||
+    msg.message.extendedTextMessage?.text ||
+    "[Mídia]";
 
-    const raw = msg.key.participant || msg.key.remoteJid;
-    let fromClean = raw.replace(/@.*/, "");
+  const raw = msg.key.participant || msg.key.remoteJid;
+  let fromClean = raw.replace(/@.*/, "");
 
-    let groupName = "";
-    if (isGroup) {
-      try {
-        const meta = await sock.groupMetadata(jid);
-        groupName = meta.subject;
-      } catch {
-        groupName = "Grupo";
-      }
+  let groupName = "";
+  if (isGroup) {
+    try {
+      const meta = await sock.groupMetadata(jid);
+      groupName = meta.subject;
+    } catch {
+      groupName = "Grupo";
     }
-    console.log(formatLog(msg, texto, isGroup, groupName, fromClean));
-    const BOT_ID = "63755148890155";
-    const ctx = msg.message?.extendedTextMessage?.contextInfo;
-    const repliedToBot =
-      ctx?.participant === `${BOT_ID}@s.whatsapp.net` ||
-      ctx?.participant === `${BOT_ID}@lid`;
-    const marcouID = texto.includes(`@${BOT_ID}`);
+  }
 
+  console.log(formatLog(msg, texto, isGroup, groupName, fromClean));
+
+  const BOT_ID = "63755148890155";
+  const ctx = msg.message?.extendedTextMessage?.contextInfo;
+
+  const repliedToBot =
+    ctx?.participant === `${BOT_ID}@s.whatsapp.net` ||
+    ctx?.participant === `${BOT_ID}@lid`;
+
+  const marcouID = texto.includes(`@${BOT_ID}`);
 
 // ==========================
 // XERIFE → MONITORAMENTO
