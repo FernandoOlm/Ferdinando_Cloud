@@ -245,14 +245,12 @@ async function startBot_Unique01() {
   const { state, saveCreds } = await useMultiFileAuthState("./auth");
   const { version } = await fetchLatestBaileysVersion();
 
-  const sock = makeWASocket({
-    version,
-    auth: state,
-    printQRInTerminal: false,
-
-    // 🔥 Logger silencioso (adeus "Closing session")
-   // logger: pino({ level: "fatal" }),
-  });
+const sock = makeWASocket({
+  version,
+  auth: state,
+  printQRInTerminal: false,
+  logger // 🔥 AGORA SIM
+});
 
   globalThis.sock = sock;
 
