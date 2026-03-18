@@ -1,5 +1,5 @@
 // ================================
-// INÍCIO - reputacao.js LGPD SAFE FINAL
+// INÍCIO - reputacao.js FINAL SIMPLES
 // ================================
 
 import fs from "fs";
@@ -7,15 +7,11 @@ import path from "path";
 import crypto from "crypto";
 
 const PATH_DB = path.resolve("src/data/reputacao.json");
-
-// ================================
-// CONFIG
-// ================================
 const LIMITE_DIAS = 60;
 const SALT = process.env.SALT_SECRETO || "salt_forte_aqui";
 
 // ================================
-// GARANTE DB
+// DB
 // ================================
 function ensureDB() {
   if (!fs.existsSync(PATH_DB)) {
@@ -23,9 +19,6 @@ function ensureDB() {
   }
 }
 
-// ================================
-// LOAD / SAVE
-// ================================
 function loadDB() {
   ensureDB();
   return JSON.parse(fs.readFileSync(PATH_DB, "utf8"));
@@ -36,7 +29,7 @@ function saveDB(db) {
 }
 
 // ================================
-// HASH POR GRUPO
+// HASH
 // ================================
 function hashNumero(numero, grupo) {
   return crypto
@@ -46,7 +39,7 @@ function hashNumero(numero, grupo) {
 }
 
 // ================================
-// LIMPEZA AUTOMÁTICA
+// LIMPEZA
 // ================================
 function limpar(lista) {
   const agora = Date.now();
@@ -54,7 +47,7 @@ function limpar(lista) {
 }
 
 // ================================
-// EXTRATOR UNIVERSAL
+// EXTRATOR
 // ================================
 function extrairNumerosUniversal(msg) {
   const numeros = new Set();
@@ -93,17 +86,7 @@ function extrairNumerosUniversal(msg) {
 }
 
 // ================================
-// CATEGORIAS
-// ================================
-const CATEGORIAS = {
-  golpista: "golpista",
-  "nao-paga": "nao_pagou_leilao",
-  "ref-falsa": "referencias_falsas",
-  comportamento: "comportamento"
-};
-
-// ================================
-// GARANTE ESTRUTURA DO USUÁRIO
+// BASE
 // ================================
 function criarBase() {
   return {
@@ -114,39 +97,33 @@ function criarBase() {
   };
 }
 
+const CATEGORIAS = {
+  golpista: "golpista",
+  "nao-paga": "nao_pagou_leilao",
+  "ref-falsa": "referencias_falsas",
+  comportamento: "comportamento"
+};
+
 // ================================
-// COMANDO PRINCIPAL - BANIR
+// BANIR (PRINCIPAL)
 // ================================
 export async function banirCategoria(msg, sock, from, args) {
   try {
     if (!msg.key.remoteJid.includes("@g.us")) {
-      return { texto: "❌ Comando apenas para grupos." };
+      return { texto: "❌ Apenas em grupo." };
     }
 
-    if (!args || args.length === 0) {
-      return {
-        texto: `❌ Use: !banir [categoria]
-
-Categorias:
-- golpista
-- nao-paga
-- ref-falsa
-- comportamento`
-      };
-    }
-
-    const tipoInput = args[0].toLowerCase().trim();
+    const tipoInput = args?.[0]?.toLowerCase?.().trim?.();
     const categoria = CATEGORIAS[tipoInput];
 
     if (!categoria) {
       return {
-        texto: `❌ Categoria inválida.
+        texto: `❌ Use:
 
-Use:
-- golpista
-- nao-paga
-- ref-falsa
-- comportamento`
+!banir golpista
+!banir nao-paga
+!banir ref-falsa
+!banir comportamento`
       };
     }
 
@@ -170,12 +147,14 @@ Use:
         db[grupo][id] = criarBase();
       }
 
-      db[grupo][id][categoria].push({
+      const lista = db[grupo][id][categoria];
+
+      lista.push({
         motivo: args.slice(1).join(" ") || "Sem descrição",
         data: Date.now()
       });
 
-      db[grupo][id][categoria] = limpar(db[grupo][id][categoria]);
+      db[grupo][id][categoria] = limpar(lista);
 
       total++;
     }
@@ -183,28 +162,27 @@ Use:
     saveDB(db);
 
     return {
-      texto: `🚫 ${total} usuário(s) marcado(s) como *${tipoInput}*`
+      texto: `🚫 ${total} marcado(s) como ${tipoInput}`
     };
 
   } catch (err) {
-    console.error("ERRO BANIR:", err);
-    return { texto: "❌ Erro ao executar comando." };
+    console.log("ERRO BANIR:", err);
+    return { texto: "❌ Erro." };
   }
 }
 
 // ================================
 // STATUS
 // ================================
-function calcularStatus(dados) {
-  const g = dados.golpista.length;
-  const l = dados.nao_pagou_leilao.length;
-  const r = dados.referencias_falsas.length;
-  const c = dados.comportamento.length;
+function calcularStatus(d) {
+  const g = d.golpista.length;
+  const l = d.nao_pagou_leilao.length;
+  const r = d.referencias_falsas.length;
+  const c = d.comportamento.length;
 
   const score = -(g * 5 + l * 3 + r * 4 + c);
 
   let nivel = "NEUTRO";
-
   if (g > 0) nivel = "GOLPISTA 🚨";
   else if (score <= -5) nivel = "ALTO RISCO ⚠️";
   else if (score < 0) nivel = "RISCO";
@@ -213,9 +191,9 @@ function calcularStatus(dados) {
 }
 
 // ================================
-// CONSULTA
+// DADOS
 // ================================
-export async function dados(msg) {
+export async function dados(msg, sock, from, args) {
   try {
     const numeros = extrairNumerosUniversal(msg);
 
@@ -226,36 +204,30 @@ export async function dados(msg) {
     const db = loadDB();
     const grupo = msg.key.remoteJid;
 
-    if (!db[grupo]) {
-      return { texto: "Nenhum registro encontrado." };
-    }
-
     const id = hashNumero(numeros[0], grupo);
-    const dados = db[grupo][id];
+    const dados = db?.[grupo]?.[id];
 
     if (!dados) {
-      return { texto: "Nenhum registro encontrado." };
+      return { texto: "Nenhum registro." };
     }
 
     const s = calcularStatus(dados);
 
     return {
-      texto: `📊 Histórico no grupo
+      texto: `📊 Histórico
 
 🚨 Golpista: ${s.g}
-💸 Não pagou leilão: ${s.l}
-❌ Referências falsas: ${s.r}
+💸 Não pagou: ${s.l}
+❌ Ref falsa: ${s.r}
 ⚠️ Comportamento: ${s.c}
 
 Score: ${s.score}
-Status: ${s.nivel}
-
-⚠️ Sistema interno do grupo`
+Status: ${s.nivel}`
     };
 
   } catch (err) {
-    console.error("ERRO DADOS:", err);
-    return { texto: "❌ Erro ao consultar." };
+    console.log("ERRO DADOS:", err);
+    return { texto: "❌ Erro." };
   }
 }
 

@@ -169,29 +169,9 @@
   "function": "cmdApagarLembrete",
   "admin": true
 },
-"!add-ref": {
-  "file": "../commands/reputacao.js",
-  "function": "addRef",
-  "admin": true
-},
-"!add-alerta": {
-  "file": "../commands/reputacao.js",
-  "function": "addAlerta",
-  "admin": true
-},
-"!redflag": {
-  "file": "../commands/reputacao.js",
-  "function": "addRedflag",
-  "admin": true
-},
 "!dados": {
   "file": "../commands/reputacao.js",
   "function": "dados",
-  "admin": false
-},
-"!status": {
-  "file": "../commands/reputacao.js",
-  "function": "status",
   "admin": false
 },
 "!banir": {
