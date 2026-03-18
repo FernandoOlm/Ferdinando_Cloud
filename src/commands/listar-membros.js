@@ -1,40 +1,77 @@
-// INÍCIO listar-membros.js — versão adaptada PROFISSIONAL
+// ================================
+// INÍCIO DO ARQUIVO listar-membros.js
+// ================================
 
 export async function comandoListarMembros(msg, sock) {
-  const jid = msg.key.remoteJid;
-  const meta = await sock.groupMetadata(jid);
+  try {
+    // ================================
+    // INÍCIO - CAPTURA DADOS DO GRUPO
+    // ================================
+    const jid = msg.key.remoteJid;
+    const meta = await sock.groupMetadata(jid);
+    // ================================
+    // FIM - CAPTURA DADOS DO GRUPO
+    // ================================
 
-  const membros = [];
+    // ================================
+    // INÍCIO - EXTRAÇÃO DE NÚMEROS
+    // ================================
+    const numerosSet = new Set();
 
-  for (const p of meta.participants) {
-    const wid = p.id;                // ex: 55119..@c.us ou 1234..@lid
-    const base = wid.split("@")[0];  // número ou LID
-    const dominio = wid.split("@")[1];
+    for (const participante of meta.participants) {
+      const wid = participante.id; // ex: 5511999999999@s.whatsapp.net
+      const [numero, dominio] = wid.split("@");
 
-    // Nome detectável
-    const nomeDetectado =
-      p.notify ||
-      p.name ||
-      p.vname ||
-      null;
-
-    let nomeFinal = "Oculto";
-
-    // Se for número real
-    if (dominio === "c.us" || dominio === "s.whatsapp.net") {
-      nomeFinal = nomeDetectado ? nomeDetectado : "Sem nome";
-    } else {
-      // É LID
-      nomeFinal = nomeDetectado ? `${nomeDetectado} (privado)` : "Oculto";
+      // Só pega números reais (ignora LID / usuários ocultos)
+      if (dominio === "c.us" || dominio === "s.whatsapp.net") {
+        numerosSet.add(`+${numero}`);
+      }
     }
+    // ================================
+    // FIM - EXTRAÇÃO DE NÚMEROS
+    // ================================
 
-    membros.push(`${base} | ${nomeFinal}`);
+    // ================================
+    // INÍCIO - FORMATAÇÃO FINAL
+    // ================================
+    const listaNumeros = [...numerosSet];
+
+    const textoFinal =
+      `${meta.subject}\n\n` +
+      (listaNumeros.length > 0
+        ? listaNumeros.join("\n")
+        : "Nenhum número encontrado.");
+    // ================================
+    // FIM - FORMATAÇÃO FINAL
+    // ================================
+
+    // ================================
+    // INÍCIO - RETORNO
+    // ================================
+    return {
+      tipo: "texto",
+      texto: textoFinal
+    };
+    // ================================
+    // FIM - RETORNO
+    // ================================
+
+  } catch (erro) {
+    // ================================
+    // INÍCIO - TRATAMENTO DE ERRO
+    // ================================
+    console.error("Erro ao listar membros:", erro);
+
+    return {
+      tipo: "texto",
+      texto: "Erro ao listar membros do grupo."
+    };
+    // ================================
+    // FIM - TRATAMENTO DE ERRO
+    // ================================
   }
-
-  return {
-    tipo: "listar_membros",
-    membros
-  };
 }
 
-// FIM listar-membros.js
+// ================================
+// FIM DO ARQUIVO listar-membros.js
+// ================================
