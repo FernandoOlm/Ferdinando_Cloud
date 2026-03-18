@@ -57,46 +57,42 @@ function extrairNumerosUniversal(msg) {
   }
 
   // ============================
-  // 🔥 FUNÇÃO UNIVERSAL VCARD
+  // 🔥 FUNÇÃO UNIVERSAL (PEGA TUDO)
   // ============================
-  const extrairDeVcard = (vcard) => {
-    if (!vcard) return;
+  const extrairTudo = (texto) => {
+    if (!texto) return;
 
-    // pega QUALQUER sequência numérica grande
-    const encontrados = vcard.match(/\d{10,20}/g);
+    const encontrados = texto.match(/\d{10,20}/g);
     if (encontrados) {
       encontrados.forEach(n => numeros.add(n));
     }
   };
 
   // ============================
-  // 🔥 CONTATO ÚNICO
+  // 🔥 VCARD ÚNICO (PODE TER 50+ DENTRO)
   // ============================
   if (m?.contactMessage?.vcard) {
-    extrairDeVcard(m.contactMessage.vcard);
+    extrairTudo(m.contactMessage.vcard);
   }
 
   // ============================
-  // 🔥 MÚLTIPLOS CONTATOS (AQUI TAVA O BO)
+  // 🔥 MÚLTIPLOS CONTATOS (SE VIER CERTO)
   // ============================
-  if (m?.contactsArrayMessage?.contacts?.length) {
-    for (const contato of m.contactsArrayMessage.contacts) {
-      extrairDeVcard(contato.vcard);
+  if (m?.contactsArrayMessage?.contacts) {
+    for (const c of m.contactsArrayMessage.contacts) {
+      extrairTudo(c.vcard);
     }
   }
 
   // ============================
-  // 🔥 TEXTO NORMAL
+  // 🔥 TEXTO
   // ============================
   const texto =
     m?.conversation ||
     m?.extendedTextMessage?.text ||
     "";
 
-  const numsTexto = texto.match(/\d{10,20}/g);
-  if (numsTexto) {
-    numsTexto.forEach(n => numeros.add(n));
-  }
+  extrairTudo(texto);
 
   return [...numeros];
 }
