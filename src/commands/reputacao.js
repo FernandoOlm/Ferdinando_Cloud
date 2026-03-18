@@ -42,41 +42,61 @@ function hashNumero(numero, grupo) {
 // ================================
 function extrairNumerosUniversal(msg) {
   const numeros = new Set();
+
   let m = msg.message;
 
   if (m?.ephemeralMessage) m = m.ephemeralMessage.message;
   if (m?.viewOnceMessage) m = m.viewOnceMessage.message;
 
-  // reply
+  // ============================
+  // 🔥 REPLY
+  // ============================
   const quoted = m?.extendedTextMessage?.contextInfo?.participant;
-  if (quoted) numeros.add(quoted.replace(/\D/g, ""));
+  if (quoted) {
+    numeros.add(quoted.replace(/\D/g, ""));
+  }
 
-  // vcard
-  const pegarNumero = (vcard) => {
+  // ============================
+  // 🔥 FUNÇÃO UNIVERSAL VCARD
+  // ============================
+  const extrairDeVcard = (vcard) => {
     if (!vcard) return;
-    let match = vcard.match(/waid=(\d+)/);
-    if (match) return numeros.add(match[1]);
 
-    const nums = vcard.match(/\d{10,15}/g);
-    if (nums) nums.forEach(n => numeros.add(n));
+    // pega QUALQUER sequência numérica grande
+    const encontrados = vcard.match(/\d{10,20}/g);
+    if (encontrados) {
+      encontrados.forEach(n => numeros.add(n));
+    }
   };
 
-  if (m?.contactMessage) pegarNumero(m.contactMessage.vcard);
+  // ============================
+  // 🔥 CONTATO ÚNICO
+  // ============================
+  if (m?.contactMessage?.vcard) {
+    extrairDeVcard(m.contactMessage.vcard);
+  }
 
-  if (m?.contactsArrayMessage) {
-    for (const c of m.contactsArrayMessage.contacts) {
-      pegarNumero(c.vcard);
+  // ============================
+  // 🔥 MÚLTIPLOS CONTATOS (AQUI TAVA O BO)
+  // ============================
+  if (m?.contactsArrayMessage?.contacts?.length) {
+    for (const contato of m.contactsArrayMessage.contacts) {
+      extrairDeVcard(contato.vcard);
     }
   }
 
-  // texto
+  // ============================
+  // 🔥 TEXTO NORMAL
+  // ============================
   const texto =
     m?.conversation ||
     m?.extendedTextMessage?.text ||
     "";
 
-  const encontrados = texto.match(/\d{10,15}/g);
-  if (encontrados) encontrados.forEach(n => numeros.add(n));
+  const numsTexto = texto.match(/\d{10,20}/g);
+  if (numsTexto) {
+    numsTexto.forEach(n => numeros.add(n));
+  }
 
   return [...numeros];
 }
