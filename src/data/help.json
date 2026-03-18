@@ -17,7 +17,6 @@
         { "cmd": "!listar-membros", "desc": "Lista todos os membros do grupo." },
         { "cmd": "!autorizar", "desc": "Autoriza membros ou funções específicas." },
 
-
         { "cmd": "!ban", "desc": "Bane alguém usando @ ou reply." },
         { "cmd": "!unban", "desc": "Remove alguém da lista de banidos." },
         { "cmd": "!bans", "desc": "Lista banidos do grupo." },
@@ -42,44 +41,74 @@
     },
 
     {
-  "titulo": "Lembretes",
-  "comandos": [
-    {
-      "cmd": "!lembrete",
-      "desc": "Cria lembretes no formato NOVO: DD/MM/AAAA HH:MM [D|S|M] mensagem."
+      "titulo": "Lembretes",
+      "comandos": [
+        {
+          "cmd": "!lembrete",
+          "desc": "Cria lembretes no formato NOVO: DD/MM/AAAA HH:MM [D|S|M] mensagem."
+        },
+        {
+          "cmd": "• Diário (D)",
+          "desc": "!lembrete 11/02/2026 20:00 D tomar água"
+        },
+        {
+          "cmd": "• Semanal (S)",
+          "desc": "!lembrete 11/02/2026 09:00 S reunião semanal"
+        },
+        {
+          "cmd": "• Mensal (M)",
+          "desc": "!lembrete 11/02/2026 05 09:00 M pagar boletos"
+        },
+        {
+          "cmd": "Atalhos opcionais",
+          "desc": "!lembrete-diario HH:MM mensagem | !lembrete-semanal HH:MM mensagem | !lembrete-mensal HH:MM mensagem"
+        },
+        {
+          "cmd": "!listar-lembretes",
+          "desc": "Mostra todos os lembretes ativos."
+        },
+        {
+          "cmd": "!desativar-lembrete ID",
+          "desc": "Remove um lembrete específico."
+        }
+      ]
     },
-    {
-      "cmd": "• Diário (D)",
-      "desc": "!lembrete 11/02/2026 20:00 D tomar água"
-    },
-    {
-      "cmd": "• Semanal (S)",
-      "desc": "!lembrete 11/02/2026 09:00 S reunião semanal"
-    },
-    {
-      "cmd": "• Mensal (M)",
-      "desc": "!lembrete 11/02/2026 05 09:00 M pagar boletos"
-    },
-    {
-      "cmd": "Atalhos opcionais",
-      "desc": "!lembrete-diario HH:MM mensagem | !lembrete-semanal HH:MM mensagem | !lembrete-mensal HH:MM mensagem"
-    },
-    {
-      "cmd": "!listar-lembretes",
-      "desc": "Mostra todos os lembretes ativos."
-    },
-    {
-      "cmd": "!desativar-lembrete ID",
-      "desc": "Remove um lembrete específico."
-    }
-  ]
-},
 
     {
       "titulo": "Xerife",
       "comandos": [
         { "cmd": "!ativar-xerife", "desc": "Ativa o sistema automático de regras." },
         { "cmd": "!desativar-xerife", "desc": "Desativa o sistema automático de regras." }
+      ]
+    },
+
+    {
+      "titulo": "💼 Central de Relacionamento",
+      "comandos": [
+        {
+          "cmd": "!add-ref",
+          "desc": "Adiciona referência positiva usando vCard, lista ou múltiplos contatos."
+        },
+        {
+          "cmd": "!add-alerta",
+          "desc": "Adiciona alerta ou histórico negativo de um contato."
+        },
+        {
+          "cmd": "!redflag",
+          "desc": "Marca um contato como alto risco (golpe, fraude, etc)."
+        },
+        {
+          "cmd": "!dados",
+          "desc": "Mostra todos os registros do contato (referências, alertas e flags)."
+        },
+        {
+          "cmd": "!status",
+          "desc": "Mostra o score e nível de risco do contato."
+        },
+        {
+          "cmd": "!banir",
+          "desc": "Adiciona contato(s) à lista global de banidos (aceita vCard, lista ou múltiplos)."
+        }
       ]
     }
   ]
