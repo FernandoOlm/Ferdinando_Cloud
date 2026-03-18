@@ -610,7 +610,7 @@ function loadComandosJSON() {
   const comandosSemIA_JSON = [
     "!bans",
     "!globalbans",
-    "banir",
+    "!banir",
     "!unban",
     "!all",
     //"!lembrete",
