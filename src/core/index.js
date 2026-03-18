@@ -336,10 +336,10 @@ sock.ev.on("group-participants.update", async (update) => {
     const jid = msg.key.remoteJid;
     const isGroup = jid.endsWith("@g.us");
 
-    const texto =
-      msg.message.conversation ||
-      msg.message.extendedTextMessage?.text ||
-      "[Mídia]";
+const texto =
+  msg.message?.conversation ||
+  msg.message?.extendedTextMessage?.text ||
+  "";
 const raw = msg.key.participant || msg.key.remoteJid;
 let fromClean = raw.replace(/@.*/, "");
 
@@ -571,7 +571,7 @@ async function hotImport(caminho) {
 }
 // DISPATCH UNIVERSAL DE JSON (!comandos)
 // ================================================
-if (texto.startsWith("!")) {
+if (texto && texto.startsWith("!")) {
 
   // 🔥 HOT-RELOAD DO comandos.json
 function loadComandosJSON() {
@@ -609,6 +609,7 @@ function loadComandosJSON() {
   // LISTA DE COMANDOS SEM IA
   const comandosSemIA_JSON = [
     "!bans",
+    "!banir",
     "!globalbans",
     "!unban",
     "!all",
@@ -679,7 +680,7 @@ function loadComandosJSON() {
     const fn = modulo[cfg.function];
 
     // args
-    const args = texto.split(" ").slice(1);
+    const args = texto ? texto.trim().split(/\s+/).slice(1) : [];
 
     let dados;
     try {
