@@ -610,6 +610,7 @@ function loadComandosJSON() {
   const comandosSemIA_JSON = [
     "!bans",
     "!globalbans",
+    "banir",
     "!unban",
     "!all",
     //"!lembrete",
@@ -792,7 +793,7 @@ if (/^[\/\\]/.test(texto)) {
   const clean = texto.split(" ")[0].toLowerCase();
 const comandosSemIA = [
   "/all", "/unban", "/bans", "/globalbans", "/listar-membros",
-  "!all", "!unban","!ajuda" ,"!bans", "!globalbans", "!listar-membros"
+  "!all", "!unban","!ajuda" ,"!bans", "!globalbans", "!banir","!listar-membros"
 ];
 
 if (comandosSemIA.includes(clean) || comandosSemIA.includes(cmd)) {
