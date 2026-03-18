@@ -1,15 +1,21 @@
 // ================================
-// INÍCIO - reputacao.js FINAL ABSOLUTO
+// INÍCIO - reputacao LGPD SAFE
 // ================================
 
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 
 const PATH_DB = path.resolve("src/data/reputacao.json");
-const PATH_BANS = path.resolve("src/data/bans.json");
 
 // ================================
-// GARANTE ARQUIVO
+// CONFIG
+// ================================
+const LIMITE_DIAS = 60;
+const SALT = process.env.SALT_SECRETO || "salt_forte_aqui";
+
+// ================================
+// GARANTE DB
 // ================================
 function ensureDB() {
   if (!fs.existsSync(PATH_DB)) {
@@ -30,11 +36,28 @@ function saveDB(db) {
 }
 
 // ================================
-// 🔥 EXTRATOR UNIVERSAL
+// HASH POR GRUPO (ANTI-RADAR)
+// ================================
+function hashNumero(numero, grupo) {
+  return crypto
+    .createHash("sha256")
+    .update(numero + grupo + SALT)
+    .digest("hex");
+}
+
+// ================================
+// LIMPEZA AUTOMÁTICA
+// ================================
+function limpar(registros) {
+  const agora = Date.now();
+  return registros.filter(r => agora - r.data < LIMITE_DIAS * 86400000);
+}
+
+// ================================
+// EXTRATOR (igual ao seu)
 // ================================
 function extrairNumerosUniversal(msg) {
   const numeros = new Set();
-
   let m = msg.message;
 
   if (m?.ephemeralMessage) m = m.ephemeralMessage.message;
@@ -42,12 +65,8 @@ function extrairNumerosUniversal(msg) {
 
   const pegarNumero = (vcard) => {
     if (!vcard) return;
-
     let match = vcard.match(/waid=(\d+)/);
-    if (match) {
-      numeros.add(match[1]);
-      return;
-    }
+    if (match) return numeros.add(match[1]);
 
     const nums = vcard.match(/\d{10,15}/g);
     if (nums) nums.forEach(n => numeros.add(n));
@@ -57,16 +76,6 @@ function extrairNumerosUniversal(msg) {
 
   if (m?.contactsArrayMessage) {
     for (const c of m.contactsArrayMessage.contacts) {
-      pegarNumero(c.vcard);
-    }
-  }
-
-  const quoted = m?.extendedTextMessage?.contextInfo?.quotedMessage;
-
-  if (quoted?.contactMessage) pegarNumero(quoted.contactMessage.vcard);
-
-  if (quoted?.contactsArrayMessage) {
-    for (const c of quoted.contactsArrayMessage.contacts) {
       pegarNumero(c.vcard);
     }
   }
@@ -83,33 +92,22 @@ function extrairNumerosUniversal(msg) {
 }
 
 // ================================
-// 🔥 VERIFICAR BAN
-// ================================
-function verificarBan(numero) {
-  try {
-    const bans = JSON.parse(fs.readFileSync(PATH_BANS, "utf8"));
-    return bans.global.find(b => b.alvo === numero) || null;
-  } catch {
-    return null;
-  }
-}
-
-// ================================
-// CADASTRO EM MASSA
+// PROCESSAR (ISOLADO POR GRUPO)
 // ================================
 async function processar(msg, tipo, textoMotivo) {
   const numeros = extrairNumerosUniversal(msg);
-
-  if (!numeros.length) {
-    return { texto: "Nenhum número encontrado." };
-  }
+  if (!numeros.length) return { texto: "Nenhum número encontrado." };
 
   const db = loadDB();
+  const grupo = msg.key.remoteJid;
+
+  if (!db[grupo]) db[grupo] = {};
 
   for (const numero of numeros) {
-    if (!db[numero]) {
-      db[numero] = {
-        nome: "Desconhecido",
+    const id = hashNumero(numero, grupo);
+
+    if (!db[grupo][id]) {
+      db[grupo][id] = {
         referencias: [],
         alertas: [],
         redflags: []
@@ -118,76 +116,24 @@ async function processar(msg, tipo, textoMotivo) {
 
     const registro = {
       texto: textoMotivo || "Sem descrição",
-      autor: (msg.key.participant || msg.key.remoteJid).replace(/@.*/, ""),
-      grupo: msg.key.remoteJid,
       data: Date.now()
     };
 
-    if (tipo === "ref") db[numero].referencias.push(registro);
-    if (tipo === "alerta") db[numero].alertas.push(registro);
-    if (tipo === "redflag") db[numero].redflags.push(registro);
+    db[grupo][id][tipo].push(registro);
+
+    // limpeza
+    db[grupo][id][tipo] = limpar(db[grupo][id][tipo]);
   }
 
   saveDB(db);
 
-  return {
-    texto: `✅ Operação aplicada em ${numeros.length} usuários`
-  };
-}
-
-// ================================
-// FORMATAR DADOS
-// ================================
-function formatarDados(numero, dados) {
-  let txt = `👤 ${dados.nome}\n📱 +${numero}\n\n`;
-
-  const ban = verificarBan(numero);
-
-  if (ban) {
-    txt += `🚫 BANIDO GLOBAL\nMotivo: ${ban.motivo}\n\n`;
-  }
-
-  if (dados.referencias.length) {
-    txt += "⭐ Referências:\n";
-    dados.referencias.forEach(r => (txt += `- ${r.texto}\n`));
-    txt += "\n";
-  }
-
-  if (dados.alertas.length) {
-    txt += "⚠️ Alertas:\n";
-    dados.alertas.forEach(a => (txt += `- ${a.texto}\n`));
-    txt += "\n";
-  }
-
-  if (dados.redflags.length) {
-    txt += "🚫 Red Flags:\n";
-    dados.redflags.forEach(r => (txt += `- ${r.texto}\n`));
-    txt += "\n";
-  }
-
-  if (!dados.referencias.length && !dados.alertas.length && !dados.redflags.length) {
-    txt += "Sem registros.";
-  }
-
-  return txt;
+  return { texto: `✅ Aplicado em ${numeros.length} usuário(s)` };
 }
 
 // ================================
 // STATUS
 // ================================
-function calcularStatus(numero, dados) {
-  const ban = verificarBan(numero);
-
-  if (ban) {
-    return `👤 ${dados.nome}
-📱 +${numero}
-
-🚫 BANIDO GLOBAL
-Motivo: ${ban.motivo}
-
-Status: BLOQUEADO 🚨`;
-  }
-
+function calcularStatus(dados) {
   const pos = dados.referencias.length;
   const neg = dados.alertas.length;
   const red = dados.redflags.length;
@@ -199,59 +145,39 @@ Status: BLOQUEADO 🚨`;
   if (score < 0) nivel = "RISCO ⚠️";
   if (score <= -5) nivel = "ALTO RISCO 🚨";
 
-  return `👤 ${dados.nome}
-📱 +${numero}
-
-⭐ ${pos} referências
-⚠️ ${neg} alertas
-🚫 ${red} redflags
-
-📊 Score: ${score}
-Status: ${nivel}`;
+  return { pos, neg, red, score, nivel };
 }
 
 // ================================
-// BANIMENTO EM MASSA
+// DADOS
 // ================================
-export async function banirVcard(msg, sock, from, args) {
+export async function dados(msg) {
   const numeros = extrairNumerosUniversal(msg);
+  if (!numeros.length) return { texto: "Nenhum número encontrado." };
 
-  if (!numeros.length) {
-    return { texto: "Nenhum número encontrado." };
-  }
-
-  const db = JSON.parse(fs.readFileSync(PATH_BANS, "utf8"));
-
-  const motivo = args.join(" ") || "Sem motivo informado";
-  const admin = (msg.key.participant || msg.key.remoteJid).replace(/@.*/, "");
+  const db = loadDB();
   const grupo = msg.key.remoteJid;
 
-  let novos = 0;
-  let repetidos = 0;
+  if (!db[grupo]) return { texto: "Nenhum registro encontrado." };
 
-  for (const numero of numeros) {
-    const existe = db.global.some(b => b.alvo === numero);
+  const id = hashNumero(numeros[0], grupo);
+  const dados = db[grupo][id];
 
-    if (existe) {
-      repetidos++;
-      continue;
-    }
+  if (!dados) return { texto: "Nenhum registro encontrado." };
 
-    db.global.push({
-      alvo: numero,
-      admin,
-      grupoOrigem: grupo,
-      motivo,
-      data: Date.now()
-    });
-
-    novos++;
-  }
-
-  fs.writeFileSync(PATH_BANS, JSON.stringify(db, null, 2));
+  const status = calcularStatus(dados);
 
   return {
-    texto: `🚫 Banimento concluído\n\n✅ ${novos} novos\n⚠️ ${repetidos} já existiam`
+    texto: `📊 Histórico no grupo
+
+⭐ ${status.pos} referências
+⚠️ ${status.neg} alertas
+🚫 ${status.red} redflags
+
+Score: ${status.score}
+Status: ${status.nivel}
+
+⚠️ Sistema interno do grupo`
   };
 }
 
@@ -259,58 +185,17 @@ export async function banirVcard(msg, sock, from, args) {
 // COMANDOS
 // ================================
 export async function addRef(msg, sock, from, args) {
-  return processar(msg, "ref", args.join(" "));
+  return processar(msg, "referencias", args.join(" "));
 }
 
 export async function addAlerta(msg, sock, from, args) {
-  return processar(msg, "alerta", args.join(" "));
+  return processar(msg, "alertas", args.join(" "));
 }
 
 export async function addRedflag(msg, sock, from, args) {
-  return processar(msg, "redflag", args.join(" "));
+  return processar(msg, "redflags", args.join(" "));
 }
 
 // ================================
-// CONSULTA
-// ================================
-export async function dados(msg) {
-  const numeros = extrairNumerosUniversal(msg);
-
-  if (!numeros.length) {
-    return { texto: "Nenhum número encontrado." };
-  }
-
-  const db = loadDB();
-  const numero = numeros[0];
-
-  if (!db[numero]) {
-    return { texto: "Nenhum registro encontrado." };
-  }
-
-  return {
-    texto: formatarDados(numero, db[numero])
-  };
-}
-
-export async function status(msg) {
-  const numeros = extrairNumerosUniversal(msg);
-
-  if (!numeros.length) {
-    return { texto: "Nenhum número encontrado." };
-  }
-
-  const db = loadDB();
-  const numero = numeros[0];
-
-  if (!db[numero]) {
-    return { texto: "Nenhum registro encontrado." };
-  }
-
-  return {
-    texto: calcularStatus(numero, db[numero])
-  };
-}
-
-// ================================
-// FIM - reputacao.js
+// FIM
 // ================================
