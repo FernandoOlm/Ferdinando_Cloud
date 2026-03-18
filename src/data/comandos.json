@@ -196,7 +196,7 @@
 },
 "!banir": {
   "file": "../commands/reputacao.js",
-  "function": "banirVcard",
+  "function": "banirCategoria",
   "admin": true
 }
 

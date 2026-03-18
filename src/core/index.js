@@ -297,7 +297,7 @@ sock.ev.on("group-participants.update", async (update) => {
       // 1) Banimento automático
       const banDetectado = await banCheckEntrada_Unique01(sock, grupoId, usuario);
       if (banDetectado) {
-        console.log(`⛔ Usuário banido bloqueado: ${nome} (${numero})`);
+        console.log(`⛔ Usuário banido bloqueado: ${numero}`);
         continue;
       }
 
@@ -336,165 +336,82 @@ sock.ev.on("group-participants.update", async (update) => {
     const jid = msg.key.remoteJid;
     const isGroup = jid.endsWith("@g.us");
 
-const texto =
-  msg.message?.conversation ||
-  msg.message?.extendedTextMessage?.text ||
-  "";
-const raw = msg.key.participant || msg.key.remoteJid;
-let fromClean = raw.replace(/@.*/, "");
+    const texto =
+      msg.message.conversation ||
+      msg.message.extendedTextMessage?.text ||
+      "[Mídia]";
 
-// =====================================================
-// PV → SISTEMA VIA CLAWBRAIN (SEM DUPLICAR)
-// =====================================================
-if (!isGroup) {
+    const raw = msg.key.participant || msg.key.remoteJid;
+    let fromClean = raw.replace(/@.*/, "");
 
-  const bansPath = path.resolve("src/data/bans.json");
-  const textoLower = texto.toLowerCase();
-
-  let promptSistema = null;
-
-  // ---------------- BAN GLOBAL ----------------
-  if (fs.existsSync(bansPath)) {
-    const bansDB = JSON.parse(fs.readFileSync(bansPath, "utf8"));
-    const banGlobal = bansDB.global?.find(b => b.alvo === fromClean);
-
-    if (banGlobal) {
-      promptSistema = `
-Responda como um sistema automatizado institucional.
-Deixe claro que é uma Inteligência Artificial.
-Informe que o acesso foi bloqueado.
-Motivo: ${banGlobal.motivo}.
-Grupo de origem: ${banGlobal.grupoOrigem}.
-Não demonstre emoção.
-Finalize informando que o atendimento continua automático.
-      `;
+    let groupName = "";
+    if (isGroup) {
+      try {
+        const meta = await sock.groupMetadata(jid);
+        groupName = meta.subject;
+      } catch {
+        groupName = "Grupo";
+      }
     }
-  }
-
-  // ---------------- PROTOCOLO DE SEGURANÇA ----------------
-  if (!promptSistema && textoLower.includes("sou de menor")) {
-    promptSistema = `
-Responda como sistema automatizado.
-Informe que uma palavra sensível foi detectada.
-Explique que o protocolo de segurança foi ativado automaticamente.
-Deixe claro que é uma Inteligência Artificial.
-Não demonstre julgamento.
-Finalize dizendo que o atendimento automático continua.
-      `;
-  }
-
-  // ---------------- EXECUTA VIA CLAWBRAIN ----------------
-  if (promptSistema) {
-
-    const respostaIA = await clawBrainProcess_Unique01({
-      tipo: "comando",
-      comando: "sistema",
-      dados: { mensagem: promptSistema }
-    });
-
-    if (respostaIA) {
-      await sock.sendMessage(jid, { text: respostaIA });
-    }
-
-    return; // 🔥 impede qualquer outra resposta
-  }
-}
+    console.log(formatLog(msg, texto, isGroup, groupName, fromClean));
+    const BOT_ID = "63755148890155";
+    const ctx = msg.message?.extendedTextMessage?.contextInfo;
+    const repliedToBot =
+      ctx?.participant === `${BOT_ID}@s.whatsapp.net` ||
+      ctx?.participant === `${BOT_ID}@lid`;
+    const marcouID = texto.includes(`@${BOT_ID}`);
 
 
 // ==========================
 // XERIFE → MONITORAMENTO
 // ==========================
-
-// console.log("=================================");
-// console.log("🚨 XERIFE CHECK");
-// console.log("isGroup:", isGroup);
-// console.log("jid:", jid);
-// console.log("fromClean:", fromClean);
-// console.log("xerifeAtivo:", xerifeAtivo(jid));
-// console.log("=================================");
-
 if (isGroup && xerifeAtivo(jid)) {
-
-  console.log("✅ ENTROU NO BLOCO DO XERIFE");
-
   const meta = await sock.groupMetadata(jid);
-
   const isAuthorAdmin = meta.participants.some(
     p =>
       p.id.replace(/@.*/, "") === fromClean &&
       (p.admin === "admin" || p.admin === "superadmin")
   );
-
   const isRoot = fromClean === ROOT;
 
-  console.log("👮 isAuthorAdmin:", isAuthorAdmin);
-  console.log("👑 isRoot:", isRoot);
-
-  const textoSeguro =
-    msg.message?.conversation ||
-    msg.message?.extendedTextMessage?.text ||
-    "";
-
-  console.log("📝 Texto capturado:", textoSeguro);
-
   // ==========================
-  // LINKS
+  // LINKS (Simples e direto)
   // ==========================
-
-  const linksEncontrados = textoSeguro.match(/https?:\/\/[^\s]+/gi);
-
-  console.log("🔗 Links encontrados:", linksEncontrados);
+  const linksEncontrados = texto.match(/https?:\/\/[^\s]+/gi);
 
   if (linksEncontrados) {
     for (const url of linksEncontrados) {
 
-      console.log("🔎 Verificando URL:", url);
+      // 1) DUPLICIDADE
+      if (linkDuplicado(jid, url)) {
+        console.log("🔎 XERIFE: Link repetido detectado:", url);
 
-      const duplicado = linkDuplicado(jid, url);
-      console.log("📌 Resultado linkDuplicado:", duplicado);
+        if (!isAuthorAdmin && !isRoot) {
+          const strikes = addStrike(jid, fromClean);
 
-if (duplicado) {
-  console.log("🚨 LINK DUPLICADO DETECTADO");
+          await sock.sendMessage(jid, { delete: msg.key });
 
-  if (!isAuthorAdmin && !isRoot) {
-
-    const strikes = addStrike(jid, fromClean);
-    console.log("🔥 Strike aplicado:", strikes);
-
-    // DELETE SEGURO
-    try {
-      await sock.sendMessage(jid, {
-        delete: {
-          remoteJid: jid,
-          fromMe: false,
-          id: msg.key.id,
-          participant: msg.key.participant
+          if (strikes === 1) {
+            await sock.sendMessage(jid, {
+              text: "⚠️ Guerreiro… não repete link. Manda outro."
+            });
+          } else if (strikes === 2) {
+            await sock.sendMessage(jid, {
+              text: "🚫 Segunda repetição… tá pedindo pra arrumar confusão?"
+            });
+          } else if (strikes >= 3) {
+            const admin = meta.participants.find(p => p.admin);
+            await sock.sendMessage(jid, {
+              text: "🚨 Terceira repetição… chamando o 01 dessa porra!",
+              mentions: admin ? [admin.id] : []
+            });
+          }
         }
-      });
-    } catch (e) {
-      console.log("⚠️ Erro ao deletar (ignorando):", e.message);
-    }
 
-    // RESPOSTA SEM FALHA
-    let resposta = "";
+        return; // ❗ ESSENCIAL
+      }
 
-    if (strikes === 1) {
-      resposta = "⚠️ Guerreiro… não repete link. Manda outro.";
-    } else if (strikes === 2) {
-      resposta = "🚫 Segunda repetição… tá pedindo pra arrumar confusão?";
-    } else if (strikes >= 3) {
-      resposta = "🚨 Já mandou muitas vezes né? Admin foi avisado.";
-    }
-
-    if (resposta) {
-      await sock.sendMessage(jid, { text: resposta });
-    }
-  }
-
-  return;
-}
-
-      console.log("🆕 Registrando link novo...");
+      // 2) REGISTRO DE LINK NOVO
       registrarLink(jid, url);
     }
   }
@@ -502,64 +419,49 @@ if (duplicado) {
   // ==========================
   // IMAGENS
   // ==========================
-
-  if (msg.message?.imageMessage) {
-
-    console.log("🖼️ Imagem detectada");
+  if (msg.message.imageMessage) {
 
     const buffer = await downloadMediaMessage(msg, "buffer", {});
     const hash = gerarHashImagem(buffer);
 
-    console.log("🔐 Hash:", hash);
+    // --------------------------------------
+    // 🔥 IMAGEM DUPLICADA
+    // --------------------------------------
+    if (imagemDuplicada(jid, hash)) {
+      console.log("🔎 XERIFE: Imagem repetida detectada:", hash);
 
-    const imgDuplicada = imagemDuplicada(jid, hash);
-    console.log("📌 Resultado imagemDuplicada:", imgDuplicada);
+      if (!isAuthorAdmin && !isRoot) {
+        const strikes = addStrike(jid, fromClean);
 
-  if (imgDuplicada) {
-  console.log("🚨 IMAGEM DUPLICADA DETECTADA");
+        await sock.sendMessage(jid, { delete: msg.key });
 
-  if (!isAuthorAdmin && !isRoot) {
-
-    const strikes = addStrike(jid, fromClean);
-    console.log("🔥 Strike aplicado:", strikes);
-
-    try {
-      await sock.sendMessage(jid, {
-        delete: {
-          remoteJid: jid,
-          fromMe: false,
-          id: msg.key.id,
-          participant: msg.key.participant
+        if (strikes === 1) {
+          await sock.sendMessage(jid, {
+            text: "⚠️ Recruta… presta atenção: repetir imagem não é estratégia. Se liga."
+          });
+        } else if (strikes === 2) {
+          await sock.sendMessage(jid, {
+            text: "🚫 Duas vezes no mesmo dia? Quer entrar no saco?"
+          });
+        } else if (strikes >= 3) {
+          const admin = meta.participants.find(p => p.admin);
+          await sock.sendMessage(jid, {
+            text: "🚨 Três vezes? O BOPE tá chegando… segura o rojão.",
+            mentions: admin ? [admin.id] : []
+          });
         }
-      });
-    } catch (e) {
-      console.log("⚠️ Erro ao deletar (ignorando):", e.message);
+      }
+
+      return; // ❗ FUNDAMENTAL – PARA TODO O FLUXO
     }
 
-    let resposta = "";
-
-    if (strikes === 1) {
-      resposta = "⚠️ Recruta… repetir imagem não é estratégia.";
-    } else if (strikes === 2) {
-      resposta = "🚫 Duas vezes no mesmo dia? Quer entrar no saco?";
-    } else if (strikes >= 3) {
-      resposta = "🚨 Já mandou muitas vezes né? Admin foi avisado.";
-    }
-
-    if (resposta) {
-      await sock.sendMessage(jid, { text: resposta });
-    }
-  }
-
-  return;
-}
-
-    console.log("🆕 Registrando imagem nova...");
+    // --------------------------------------
+    // 🔵 IMAGEM NOVA → REGISTRA e SAI
+    // --------------------------------------
     registrarImagem(jid, hash);
-    return;
+    return; // ❗ ESSENCIAL PRA NÃO SUJAR O FLUXO
   }
 }
-
 
 
 
@@ -571,7 +473,7 @@ async function hotImport(caminho) {
 }
 // DISPATCH UNIVERSAL DE JSON (!comandos)
 // ================================================
-if (texto && texto.startsWith("!")) {
+if (texto.startsWith("!")) {
 
   // 🔥 HOT-RELOAD DO comandos.json
 function loadComandosJSON() {
@@ -610,9 +512,9 @@ function loadComandosJSON() {
   const comandosSemIA_JSON = [
     "!bans",
     "!globalbans",
-    "!banir",
     "!unban",
     "!all",
+    "!banir",
     //"!lembrete",
     "!sorteio",
     "!cadastro-all",
@@ -680,22 +582,21 @@ function loadComandosJSON() {
     const fn = modulo[cfg.function];
 
     // args
-    const args = texto ? texto.trim().split(/\s+/).slice(1) : [];
+    const args = texto.split(" ").slice(1);
 
     let dados;
     try {
-      dados = await fn(msg, sock, fromClean, args);
-      // const aridade = fn.length;
+      const aridade = fn.length;
 
-      // if (aridade === 2) {
-      //   dados = await fn(msg, sock);
-      // } else if (aridade === 3) {
-      //   dados = await fn(msg, sock, fromClean);
-      // } else if (aridade === 4) {
-      //   dados = await fn(msg, sock, fromClean, args);
-      // } else {
-      //   dados = await fn(msg, sock, fromClean, args);
-      // }
+      if (aridade === 2) {
+        dados = await fn(msg, sock);
+      } else if (aridade === 3) {
+        dados = await fn(msg, sock, fromClean);
+      } else if (aridade === 4) {
+        dados = await fn(msg, sock, fromClean, args);
+      } else {
+        dados = await fn(msg, sock, fromClean, args);
+      }
     } catch (e) {
       await sock.sendMessage(jid, { text: "Erro ao executar comando." });
       console.log("Erro comando sem IA:", cmd, e);
@@ -748,26 +649,21 @@ function loadComandosJSON() {
     // import quente
     const modulo = await hotImport(cfg.file);
     const fn = modulo[cfg.function];
-    const args = texto ? texto.trim().split(/\s+/).slice(1) : [];
+    const args = texto.split(" ").slice(1);
 
     let dados;
     try {
+      const aridade = fn.length;
 
-      dados = await fn(msg, sock, fromClean, args);
-      // const aridade = fn.length;
-
-      // if (aridade === 2) {
-      //   dados = await fn(msg, sock);
-      // } else if (aridade === 3) {
-      //   dados = await fn(msg, sock, fromClean);
-      // } else if (aridade === 4) {
-      //   dados = await fn(msg, sock, fromClean, args);
-      // } else {
-      //   dados = await fn(msg, sock, fromClean, args);
-      // }
-
-
-
+      if (aridade === 2) {
+        dados = await fn(msg, sock);
+      } else if (aridade === 3) {
+        dados = await fn(msg, sock, fromClean);
+      } else if (aridade === 4) {
+        dados = await fn(msg, sock, fromClean, args);
+      } else {
+        dados = await fn(msg, sock, fromClean, args);
+      }
     } catch (e) {
       await sock.sendMessage(jid, { text: "Erro ao executar comando." });
       console.log("Erro comando IA:", cmd, e);
@@ -793,7 +689,7 @@ if (/^[\/\\]/.test(texto)) {
   const clean = texto.split(" ")[0].toLowerCase();
 const comandosSemIA = [
   "/all", "/unban", "/bans", "/globalbans", "/listar-membros",
-  "!all", "!unban","!ajuda" ,"!bans", "!globalbans", "!banir","!listar-membros"
+  "!all", "!unban","!ajuda" ,"!bans", "!banir", "!globalbans", "!listar-membros"
 ];
 
 if (comandosSemIA.includes(clean) || comandosSemIA.includes(cmd)) {
