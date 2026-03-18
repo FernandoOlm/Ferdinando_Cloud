@@ -70,7 +70,7 @@ function ensureBVFile() {
 export function loadBV() {
   ensureBVFile();
 
-  console.log("📂 Lendo BV de:", bvPath);
+  //console.log("📂 Lendo BV de:", bvPath);
 
   try {
     const raw = fs.readFileSync(bvPath, "utf8").trim();
@@ -275,7 +275,7 @@ async function startBot_Unique01() {
 // ENTRADA NO GRUPO (BAN + BV REAL)
 // --------------------------------------------------------
 sock.ev.on("group-participants.update", async (update) => {
-  console.log("🔥 EVENTO DE ENTRADA →", JSON.stringify(update, null, 2));
+  //console.log("🔥 EVENTO DE ENTRADA →", JSON.stringify(update, null, 2));
 
   // Só processa entradas
   if (update.action !== "add") return;
@@ -285,7 +285,7 @@ sock.ev.on("group-participants.update", async (update) => {
 
   // Se BV não existe ou BV está desativada → apenas ignora
   if (!bvConfig || !bvConfig.ativo) {
-    console.log("🚫 BV DESATIVADA ou NÃO CONFIGURADA para:", grupoId);
+    //console.log("🚫 BV DESATIVADA ou NÃO CONFIGURADA para:", grupoId);
     return;
   }
 
