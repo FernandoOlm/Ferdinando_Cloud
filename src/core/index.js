@@ -251,7 +251,7 @@ async function startBot_Unique01() {
     printQRInTerminal: false,
 
     // 🔥 Logger silencioso (adeus "Closing session")
-    logger: pino({ level: "fatal" }),
+   // logger: pino({ level: "fatal" }),
   });
 
   globalThis.sock = sock;
