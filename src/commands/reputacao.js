@@ -275,5 +275,31 @@ Status: ${nivel}`
 }
 
 // ================================
+// CLEAN REPUTAÇÃO (ROOT ONLY)
+// ================================
+export async function cleanRep(msg, sock, from, args) {
+  try {
+    const ROOT = process.env.ROOT_ID;
+
+    if (from !== ROOT) {
+      return { texto: "❌ Apenas o root pode usar esse comando." };
+    }
+
+    const PATH_DB = path.resolve("src/data/reputacao.json");
+
+    // reseta o arquivo
+    fs.writeFileSync(PATH_DB, JSON.stringify({}, null, 2));
+
+    return {
+      texto: "🧹 Reputação limpa com sucesso."
+    };
+
+  } catch (err) {
+    console.log("ERRO CLEAN REP:", err);
+    return { texto: "❌ Erro ao limpar reputação." };
+  }
+}
+
+// ================================
 // FIM
 // ================================

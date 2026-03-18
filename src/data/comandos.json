@@ -183,6 +183,11 @@
   "file": "../commands/reputacao.js",
   "function": "status",
   "admin": false
+},
+"!clean_rep": {
+  "file": "../commands/reputacao.js",
+  "function": "cleanRep",
+  "admin": false
 }
 
 }
