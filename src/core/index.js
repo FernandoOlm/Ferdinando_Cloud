@@ -23,7 +23,7 @@ import { registrarLink, linkDuplicado } from "../commands/xerifeRegras.js";
 //import { comandoSorteio } from "../commands/sorteio.js";
 //import { comandoListarMembros } from "../commands/listar-membros.js";
 //import { usuarioPodeAnunciar } from "../commands/xerifeRegras.js";
-
+import { atualizarGrupo_Unique03 } from "../utils/groups.js";
 
 //Final Importação de comandos
 // Hash da imagem (novo, sem dependências)
@@ -327,16 +327,21 @@ sock.ev.on("group-participants.update", async (update) => {
 // MENSAGENS
 // --------------------------------------------------------
 sock.ev.on("messages.upsert", async ({ messages }) => {
-  const msg = messages[0];
-  if (!msg?.message) return;
-  if (msg.key.fromMe) return;
+const msg = messages[0];
+if (!msg?.message) return;
+if (msg.key.fromMe) return;
 
-  // 🔥 SALVA LOG (ANTES DE QUALQUER COISA)
-  try {
-    botLoggerRegisterEvent_Unique01(msg);
-  } catch (e) {
-    console.log("Erro ao salvar log:", e);
-  }
+// 🔥 ATUALIZA GRUPO (NOVO)
+if (msg.key.remoteJid.endsWith("@g.us")) {
+  await atualizarGrupo_Unique03(sock, msg.key.remoteJid);
+}
+
+// 🔥 SALVA LOG
+try {
+  botLoggerRegisterEvent_Unique01(msg);
+} catch (e) {
+  console.log("Erro ao salvar log:", e);
+}
 
   const jid = msg.key.remoteJid;
   const isGroup = jid.endsWith("@g.us");
