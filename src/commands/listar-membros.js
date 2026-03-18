@@ -4,71 +4,38 @@
 
 export async function comandoListarMembros(msg, sock) {
   try {
-    // ================================
-    // INÍCIO - CAPTURA DADOS DO GRUPO
-    // ================================
     const jid = msg.key.remoteJid;
     const meta = await sock.groupMetadata(jid);
-    // ================================
-    // FIM - CAPTURA DADOS DO GRUPO
-    // ================================
 
-    // ================================
-    // INÍCIO - EXTRAÇÃO DE NÚMEROS
-    // ================================
-    const numerosSet = new Set();
+    const numeros = [];
 
     for (const participante of meta.participants) {
-      const wid = participante.id; // ex: 5511999999999@s.whatsapp.net
-      const [numero, dominio] = wid.split("@");
+      const wid = participante.id;
 
-      // Só pega números reais (ignora LID / usuários ocultos)
+      if (!wid) continue;
+
+      const partes = wid.split("@");
+      const numero = partes[0];
+      const dominio = partes[1];
+
       if (dominio === "c.us" || dominio === "s.whatsapp.net") {
-        numerosSet.add(`+${numero}`);
+        numeros.push(`+${numero}`);
       }
     }
-    // ================================
-    // FIM - EXTRAÇÃO DE NÚMEROS
-    // ================================
-
-    // ================================
-    // INÍCIO - FORMATAÇÃO FINAL
-    // ================================
-    const listaNumeros = [...numerosSet];
 
     const textoFinal =
       `${meta.subject}\n\n` +
-      (listaNumeros.length > 0
-        ? listaNumeros.join("\n")
-        : "Nenhum número encontrado.");
-    // ================================
-    // FIM - FORMATAÇÃO FINAL
-    // ================================
+      (numeros.length ? numeros.join("\n") : "Nenhum número encontrado.");
 
-    // ================================
-    // INÍCIO - RETORNO
-    // ================================
-    return {
-      tipo: "texto",
-      texto: textoFinal
-    };
-    // ================================
-    // FIM - RETORNO
-    // ================================
+    // 🔥 ENVIA DIRETO PRO GRUPO
+    await sock.sendMessage(jid, { text: textoFinal });
 
   } catch (erro) {
-    // ================================
-    // INÍCIO - TRATAMENTO DE ERRO
-    // ================================
     console.error("Erro ao listar membros:", erro);
 
-    return {
-      tipo: "texto",
-      texto: "Erro ao listar membros do grupo."
-    };
-    // ================================
-    // FIM - TRATAMENTO DE ERRO
-    // ================================
+    await sock.sendMessage(msg.key.remoteJid, {
+      text: "Erro ao listar membros."
+    });
   }
 }
 
