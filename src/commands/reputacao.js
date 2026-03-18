@@ -1,5 +1,5 @@
 // ================================
-// INÍCIO - reputacao.js FINAL SIMPLES
+// INÍCIO - reputacao.js FINAL FLEX
 // ================================
 
 import fs from "fs";
@@ -7,7 +7,6 @@ import path from "path";
 import crypto from "crypto";
 
 const PATH_DB = path.resolve("src/data/reputacao.json");
-const LIMITE_DIAS = 60;
 const SALT = process.env.SALT_SECRETO || "salt_forte_aqui";
 
 // ================================
@@ -29,7 +28,7 @@ function saveDB(db) {
 }
 
 // ================================
-// HASH
+// HASH LGPD
 // ================================
 function hashNumero(numero, grupo) {
   return crypto
@@ -39,38 +38,22 @@ function hashNumero(numero, grupo) {
 }
 
 // ================================
-// LIMPEZA
-// ================================
-function limpar(lista) {
-  const agora = Date.now();
-  return lista.filter(r => agora - r.data < LIMITE_DIAS * 86400000);
-}
-
-// ================================
-// EXTRATOR
+// EXTRATOR (reply + texto + vcard)
 // ================================
 function extrairNumerosUniversal(msg) {
   const numeros = new Set();
-
   let m = msg.message;
 
   if (m?.ephemeralMessage) m = m.ephemeralMessage.message;
   if (m?.viewOnceMessage) m = m.viewOnceMessage.message;
 
-  // ============================
-  // PEGAR DE REPLY
-  // ============================
+  // reply
   const quoted = m?.extendedTextMessage?.contextInfo?.participant;
-  if (quoted) {
-    numeros.add(quoted.replace(/\D/g, ""));
-  }
+  if (quoted) numeros.add(quoted.replace(/\D/g, ""));
 
-  // ============================
-  // VCARD
-  // ============================
+  // vcard
   const pegarNumero = (vcard) => {
     if (!vcard) return;
-
     let match = vcard.match(/waid=(\d+)/);
     if (match) return numeros.add(match[1]);
 
@@ -86,9 +69,7 @@ function extrairNumerosUniversal(msg) {
     }
   }
 
-  // ============================
-  // TEXTO
-  // ============================
+  // texto
   const texto =
     m?.conversation ||
     m?.extendedTextMessage?.text ||
@@ -99,46 +80,30 @@ function extrairNumerosUniversal(msg) {
 
   return [...numeros];
 }
+
 // ================================
 // BASE
 // ================================
 function criarBase() {
   return {
-    golpista: [],
-    nao_pagou_leilao: [],
-    referencias_falsas: [],
-    comportamento: []
+    ban: [],
+    redflag: []
   };
 }
 
-const CATEGORIAS = {
-  golpista: "golpista",
-  "nao-paga": "nao_pagou_leilao",
-  "ref-falsa": "referencias_falsas",
-  comportamento: "comportamento"
-};
-
 // ================================
-// BANIR (PRINCIPAL)
+// BANIR (motivo livre)
 // ================================
-export async function banirCategoria(msg, sock, from, args) {
+export async function banir(msg, sock, from, args) {
   try {
     if (!msg.key.remoteJid.includes("@g.us")) {
       return { texto: "❌ Apenas em grupo." };
     }
 
-    const tipoInput = args?.[0]?.toLowerCase?.().trim?.();
-    const categoria = CATEGORIAS[tipoInput];
+    const motivo = args?.join(" ")?.trim();
 
-    if (!categoria) {
-      return {
-        texto: `❌ Use:
-
-!banir golpista
-!banir nao-paga
-!banir ref-falsa
-!banir comportamento`
-      };
+    if (!motivo) {
+      return { texto: "❌ Use: !banir [motivo]" };
     }
 
     const numeros = extrairNumerosUniversal(msg);
@@ -161,14 +126,15 @@ export async function banirCategoria(msg, sock, from, args) {
         db[grupo][id] = criarBase();
       }
 
-      const lista = db[grupo][id][categoria];
+      const lista = db[grupo][id].ban;
 
       lista.push({
-        motivo: args.slice(1).join(" ") || "Sem descrição",
+        motivo,
+        autor: from,
         data: Date.now()
       });
 
-      db[grupo][id][categoria] = limpar(lista);
+      if (lista.length > 20) lista.shift();
 
       total++;
     }
@@ -176,7 +142,7 @@ export async function banirCategoria(msg, sock, from, args) {
     saveDB(db);
 
     return {
-      texto: `🚫 ${total} marcado(s) como ${tipoInput}`
+      texto: `🚫 ${total} marcado(s): ${motivo}`
     };
 
   } catch (err) {
@@ -186,28 +152,65 @@ export async function banirCategoria(msg, sock, from, args) {
 }
 
 // ================================
-// STATUS
+// RED FLAG (leve)
 // ================================
-function calcularStatus(d) {
-  const g = d.golpista.length;
-  const l = d.nao_pagou_leilao.length;
-  const r = d.referencias_falsas.length;
-  const c = d.comportamento.length;
+export async function redFlag(msg, sock, from, args) {
+  try {
+    const motivo = args?.join(" ")?.trim();
 
-  const score = -(g * 5 + l * 3 + r * 4 + c);
+    if (!motivo) {
+      return { texto: "❌ Use: !red-flag [motivo]" };
+    }
 
-  let nivel = "NEUTRO";
-  if (g > 0) nivel = "GOLPISTA 🚨";
-  else if (score <= -5) nivel = "ALTO RISCO ⚠️";
-  else if (score < 0) nivel = "RISCO";
+    const numeros = extrairNumerosUniversal(msg);
 
-  return { g, l, r, c, score, nivel };
+    if (!numeros.length) {
+      return { texto: "❌ Nenhum número encontrado." };
+    }
+
+    const db = loadDB();
+    const grupo = msg.key.remoteJid;
+
+    if (!db[grupo]) db[grupo] = {};
+
+    let total = 0;
+
+    for (const numero of numeros) {
+      const id = hashNumero(numero, grupo);
+
+      if (!db[grupo][id]) {
+        db[grupo][id] = criarBase();
+      }
+
+      const lista = db[grupo][id].redflag;
+
+      lista.push({
+        motivo,
+        autor: from,
+        data: Date.now()
+      });
+
+      if (lista.length > 20) lista.shift();
+
+      total++;
+    }
+
+    saveDB(db);
+
+    return {
+      texto: `🚩 ${total} alerta(s): ${motivo}`
+    };
+
+  } catch (err) {
+    console.log("ERRO REDFLAG:", err);
+    return { texto: "❌ Erro." };
+  }
 }
 
 // ================================
-// DADOS
+// STATUS
 // ================================
-export async function dados(msg, sock, from, args) {
+export async function status(msg, sock, from, args) {
   try {
     const numeros = extrairNumerosUniversal(msg);
 
@@ -225,22 +228,26 @@ export async function dados(msg, sock, from, args) {
       return { texto: "Nenhum registro." };
     }
 
-    const s = calcularStatus(dados);
+    const bans = dados.ban.length;
+    const flags = dados.redflag.length;
+
+    let nivel = "OK";
+
+    if (bans > 0) nivel = "🚨 BANIDO";
+    else if (flags >= 3) nivel = "⚠️ ALTO RISCO";
+    else if (flags > 0) nivel = "⚠️ ATENÇÃO";
 
     return {
-      texto: `📊 Histórico
+      texto: `📊 Status do usuário
 
-🚨 Golpista: ${s.g}
-💸 Não pagou: ${s.l}
-❌ Ref falsa: ${s.r}
-⚠️ Comportamento: ${s.c}
+🚫 Bans: ${bans}
+🚩 Alertas: ${flags}
 
-Score: ${s.score}
-Status: ${s.nivel}`
+Status: ${nivel}`
     };
 
   } catch (err) {
-    console.log("ERRO DADOS:", err);
+    console.log("ERRO STATUS:", err);
     return { texto: "❌ Erro." };
   }
 }
