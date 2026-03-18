@@ -51,11 +51,23 @@ function limpar(lista) {
 // ================================
 function extrairNumerosUniversal(msg) {
   const numeros = new Set();
+
   let m = msg.message;
 
   if (m?.ephemeralMessage) m = m.ephemeralMessage.message;
   if (m?.viewOnceMessage) m = m.viewOnceMessage.message;
 
+  // ============================
+  // PEGAR DE REPLY
+  // ============================
+  const quoted = m?.extendedTextMessage?.contextInfo?.participant;
+  if (quoted) {
+    numeros.add(quoted.replace(/\D/g, ""));
+  }
+
+  // ============================
+  // VCARD
+  // ============================
   const pegarNumero = (vcard) => {
     if (!vcard) return;
 
@@ -74,6 +86,9 @@ function extrairNumerosUniversal(msg) {
     }
   }
 
+  // ============================
+  // TEXTO
+  // ============================
   const texto =
     m?.conversation ||
     m?.extendedTextMessage?.text ||
@@ -84,7 +99,6 @@ function extrairNumerosUniversal(msg) {
 
   return [...numeros];
 }
-
 // ================================
 // BASE
 // ================================
