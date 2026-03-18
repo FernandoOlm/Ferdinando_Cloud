@@ -1,5 +1,5 @@
 // ================================
-// INÍCIO - reputacao.js FINAL
+// INÍCIO - reputacao.js FINAL ABSOLUTO
 // ================================
 
 import fs from "fs";
@@ -30,50 +30,40 @@ function saveDB(db) {
 }
 
 // ================================
-// 🔥 EXTRATOR UNIVERSAL (BLINDADO)
+// 🔥 EXTRATOR UNIVERSAL
 // ================================
 function extrairNumerosUniversal(msg) {
   const numeros = new Set();
 
   let m = msg.message;
 
-  // unwrap mensagens escondidas
   if (m?.ephemeralMessage) m = m.ephemeralMessage.message;
   if (m?.viewOnceMessage) m = m.viewOnceMessage.message;
 
   const pegarNumero = (vcard) => {
     if (!vcard) return;
 
-    // padrão ideal
     let match = vcard.match(/waid=(\d+)/);
     if (match) {
       numeros.add(match[1]);
       return;
     }
 
-    // fallback bruto
     const nums = vcard.match(/\d{10,15}/g);
     if (nums) nums.forEach(n => numeros.add(n));
   };
 
-  // contato único
-  if (m?.contactMessage) {
-    pegarNumero(m.contactMessage.vcard);
-  }
+  if (m?.contactMessage) pegarNumero(m.contactMessage.vcard);
 
-  // múltiplos contatos
   if (m?.contactsArrayMessage) {
     for (const c of m.contactsArrayMessage.contacts) {
       pegarNumero(c.vcard);
     }
   }
 
-  // quoted (respondido)
   const quoted = m?.extendedTextMessage?.contextInfo?.quotedMessage;
 
-  if (quoted?.contactMessage) {
-    pegarNumero(quoted.contactMessage.vcard);
-  }
+  if (quoted?.contactMessage) pegarNumero(quoted.contactMessage.vcard);
 
   if (quoted?.contactsArrayMessage) {
     for (const c of quoted.contactsArrayMessage.contacts) {
@@ -81,18 +71,27 @@ function extrairNumerosUniversal(msg) {
     }
   }
 
-  // texto manual
   const texto =
     m?.conversation ||
     m?.extendedTextMessage?.text ||
     "";
 
   const encontrados = texto.match(/\d{10,15}/g);
-  if (encontrados) {
-    encontrados.forEach(n => numeros.add(n));
-  }
+  if (encontrados) encontrados.forEach(n => numeros.add(n));
 
   return [...numeros];
+}
+
+// ================================
+// 🔥 VERIFICAR BAN
+// ================================
+function verificarBan(numero) {
+  try {
+    const bans = JSON.parse(fs.readFileSync(PATH_BANS, "utf8"));
+    return bans.global.find(b => b.alvo === numero) || null;
+  } catch {
+    return null;
+  }
 }
 
 // ================================
@@ -137,10 +136,16 @@ async function processar(msg, tipo, textoMotivo) {
 }
 
 // ================================
-// FORMATADORES
+// FORMATAR DADOS
 // ================================
 function formatarDados(numero, dados) {
   let txt = `👤 ${dados.nome}\n📱 +${numero}\n\n`;
+
+  const ban = verificarBan(numero);
+
+  if (ban) {
+    txt += `🚫 BANIDO GLOBAL\nMotivo: ${ban.motivo}\n\n`;
+  }
 
   if (dados.referencias.length) {
     txt += "⭐ Referências:\n";
@@ -167,7 +172,22 @@ function formatarDados(numero, dados) {
   return txt;
 }
 
+// ================================
+// STATUS
+// ================================
 function calcularStatus(numero, dados) {
+  const ban = verificarBan(numero);
+
+  if (ban) {
+    return `👤 ${dados.nome}
+📱 +${numero}
+
+🚫 BANIDO GLOBAL
+Motivo: ${ban.motivo}
+
+Status: BLOQUEADO 🚨`;
+  }
+
   const pos = dados.referencias.length;
   const neg = dados.alertas.length;
   const red = dados.redflags.length;
