@@ -245,11 +245,23 @@ async function startBot_Unique01() {
   const { state, saveCreds } = await useMultiFileAuthState("./auth");
   const { version } = await fetchLatestBaileysVersion();
 
-const sock = makeWASocket({
-  version,
-  auth: state,
-  printQRInTerminal: false,
-  logger // 🔥 AGORA SIM
+const logger = pino({
+  level: "info",
+  hooks: {
+    logMethod(args, method) {
+      const msg = args[0];
+
+      if (
+        typeof msg === "string" &&
+        (
+          msg.includes("Closing session") ||
+          msg.includes("SessionEntry")
+        )
+      ) return;
+
+      method.apply(this, args);
+    }
+  }
 });
 
   globalThis.sock = sock;
