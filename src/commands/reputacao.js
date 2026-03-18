@@ -48,17 +48,9 @@ function extrairNumerosUniversal(msg) {
   if (m?.ephemeralMessage) m = m.ephemeralMessage.message;
   if (m?.viewOnceMessage) m = m.viewOnceMessage.message;
 
-  // ============================
-  // 🔥 REPLY
-  // ============================
-  const quoted = m?.extendedTextMessage?.contextInfo?.participant;
-  if (quoted) {
-    numeros.add(quoted.replace(/\D/g, ""));
-  }
+  // DEBUG (se quiser ver o formato real)
+  // console.log(JSON.stringify(m, null, 2));
 
-  // ============================
-  // 🔥 FUNÇÃO UNIVERSAL (PEGA TUDO)
-  // ============================
   const extrairTudo = (texto) => {
     if (!texto) return;
 
@@ -69,23 +61,38 @@ function extrairNumerosUniversal(msg) {
   };
 
   // ============================
-  // 🔥 VCARD ÚNICO (PODE TER 50+ DENTRO)
+  // 🔥 1. contactsArrayMessage (LISTA REAL)
+  // ============================
+  if (m?.contactsArrayMessage?.contacts) {
+    for (const contato of m.contactsArrayMessage.contacts) {
+      extrairTudo(contato.vcard);
+    }
+  }
+
+  // ============================
+  // 🔥 2. contactMessage (PODE VIR 1 OU VÁRIOS EMBUTIDOS)
   // ============================
   if (m?.contactMessage?.vcard) {
     extrairTudo(m.contactMessage.vcard);
   }
 
   // ============================
-  // 🔥 MÚLTIPLOS CONTATOS (SE VIER CERTO)
+  // 🔥 3. CONTEXT (ENCAMINHADO)
   // ============================
-  if (m?.contactsArrayMessage?.contacts) {
-    for (const c of m.contactsArrayMessage.contacts) {
+  const context = m?.extendedTextMessage?.contextInfo;
+
+  if (context?.quotedMessage?.contactMessage?.vcard) {
+    extrairTudo(context.quotedMessage.contactMessage.vcard);
+  }
+
+  if (context?.quotedMessage?.contactsArrayMessage?.contacts) {
+    for (const c of context.quotedMessage.contactsArrayMessage.contacts) {
       extrairTudo(c.vcard);
     }
   }
 
   // ============================
-  // 🔥 TEXTO
+  // 🔥 4. TEXTO (fallback)
   // ============================
   const texto =
     m?.conversation ||
@@ -96,7 +103,6 @@ function extrairNumerosUniversal(msg) {
 
   return [...numeros];
 }
-
 // ================================
 // BASE
 // ================================
