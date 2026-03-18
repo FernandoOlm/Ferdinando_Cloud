@@ -609,7 +609,6 @@ function loadComandosJSON() {
   // LISTA DE COMANDOS SEM IA
   const comandosSemIA_JSON = [
     "!bans",
-    "!banir",
     "!globalbans",
     "!unban",
     "!all",
