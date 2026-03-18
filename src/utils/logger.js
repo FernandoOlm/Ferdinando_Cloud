@@ -239,6 +239,8 @@ function registrarErro_Unique09(err) {
   );
 }
 // ===== FIM =====
-
+// ===== INICIO: COMPATIBILIDADE LEGADO =====
+export const botLoggerRegisterEvent_Unique01 = botLoggerV3_Message_Unique07;
+// ===== FIM =====
 
 // ===== FIM: LOGGER V3 MONSTRO =====
