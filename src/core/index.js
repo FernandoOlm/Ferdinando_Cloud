@@ -295,7 +295,7 @@ sock.ev.on("group-participants.update", async (update) => {
       // 1) Banimento automático
       const banDetectado = await banCheckEntrada_Unique01(sock, grupoId, usuario);
       if (banDetectado) {
-        console.log(`⛔ Usuário banido bloqueado: ${numero}`);
+        //console.log(`⛔ Usuário banido bloqueado: ${numero}`);
         continue;
       }
 
@@ -314,10 +314,10 @@ sock.ev.on("group-participants.update", async (update) => {
         mentions: [usuario],
       });
 
-      console.log(`✨ BV enviada com sucesso para ${numero}`);
+      //console.log(`✨ BV enviada com sucesso para ${numero}`);
 
     } catch (e) {
-      console.log("❌ Erro ao enviar BV:", e);
+     // console.log("❌ Erro ao enviar BV:", e);
     }
   }
 });
@@ -537,12 +537,12 @@ function loadComandosJSON() {
         p.id.replace(/@.*/, "") === fromClean
     );
 
-    console.log("[ADMIN CHECK]", {
-      cmd,
-      jid,
-      fromClean,
-      isAdmin
-    });
+    //console.log("[ADMIN CHECK]", {
+   //   cmd,
+   //   jid,
+   //   fromClean,
+   //   isAdmin
+   // });
 
 
     // ============================
@@ -559,14 +559,14 @@ function loadComandosJSON() {
     const grupoConfig = authDB.grupos[jid];
     const isAutorizado = grupoConfig?.autorizados?.includes(fromClean);
 
-    console.log("[PERMISSÃO]", {
-      cmd,
-      jid,
-      fromClean,
-      isAdmin,
-      isAutorizado,
-      root: ROOT
-    });
+   // console.log("[PERMISSÃO]", {
+   //   cmd,
+   //   jid,
+   //   fromClean,
+   //   isAdmin,
+   //   isAutorizado,
+   //   root: ROOT
+   // });
 
     // SE o comando exigir permissão (admin:true no comandos.json)…
     if (cfg.admin) {
@@ -598,7 +598,7 @@ function loadComandosJSON() {
       }
     } catch (e) {
       await sock.sendMessage(jid, { text: "Erro ao executar comando." });
-      console.log("Erro comando sem IA:", cmd, e);
+    //  console.log("Erro comando sem IA:", cmd, e);
       return;
     }
 
@@ -665,7 +665,7 @@ function loadComandosJSON() {
       }
     } catch (e) {
       await sock.sendMessage(jid, { text: "Erro ao executar comando." });
-      console.log("Erro comando IA:", cmd, e);
+     // console.log("Erro comando IA:", cmd, e);
       return;
     }
 
@@ -775,7 +775,7 @@ setInterval(async () => {
       );
 
       for (const lembrete of lembretesAGATILHAR) {
-        console.log(`🔔 Lembrete enviado (${lembrete.tipo}): ${lembrete.mensagem}`);
+       // console.log(`🔔 Lembrete enviado (${lembrete.tipo}): ${lembrete.mensagem}`);
         await enviar_lembrete(lembrete, globalThis.sock);
       }
     }
@@ -816,7 +816,7 @@ setInterval(async () => {
       globalThis.sock
     );
 
-    console.log(`⚡ Ação executada: ${acao.comando} no grupo ${acao.grupo}`);
+   // console.log(`⚡ Ação executada: ${acao.comando} no grupo ${acao.grupo}`);
 
     acao.aconteceu = true;
     fs.writeFileSync(ACTION_PATH, JSON.stringify(actionDB, null, 2));
