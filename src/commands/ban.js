@@ -283,7 +283,7 @@ export async function limparBans(msg, sock) {
   }
 
   // 🔐 verificar se bot é admin (SEGURANÇA)
-  const botId = sock.user.id.replace(/@.*/, "");
+ const botId = sock.user.id.split(":")[0].replace(/@.*/, "");
   const botInfo = meta.participants.find(p =>
     p.id.replace(/@.*/, "") === botId
   );
