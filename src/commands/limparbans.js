@@ -1,17 +1,25 @@
 /* ===================================================
-   INÍCIO — IMPORTS E CONFIG
+   INÍCIO — IMPORTS
 =================================================== */
 import fs from "fs";
 import path from "path";
-
-const banPath = path.resolve("src/data/bans.json");
 /* ===================================================
-   FIM — IMPORTS E CONFIG
+   FIM — IMPORTS
 =================================================== */
 
 
 /* ===================================================
-   INÍCIO — UTIL LOAD BANS
+   INÍCIO — CONFIG
+=================================================== */
+const banPath = path.resolve("src/data/bans.json");
+let metaCache = {};
+/* ===================================================
+   FIM — CONFIG
+=================================================== */
+
+
+/* ===================================================
+   INÍCIO — LOAD BANS
 =================================================== */
 function loadBans() {
   if (!fs.existsSync(banPath)) {
@@ -23,7 +31,7 @@ function loadBans() {
   return JSON.parse(fs.readFileSync(banPath));
 }
 /* ===================================================
-   FIM — UTIL LOAD BANS
+   FIM — LOAD BANS
 =================================================== */
 
 
@@ -39,7 +47,30 @@ function normalizeJid(id) {
 
 
 /* ===================================================
-   INÍCIO — EXPULSAR UNIVERSAL
+   INÍCIO — CACHE METADATA
+=================================================== */
+async function getGroupMeta(sock, groupId) {
+  if (metaCache[groupId]) return metaCache[groupId];
+
+  try {
+    const meta = await sock.groupMetadata(groupId);
+    metaCache[groupId] = meta;
+
+    setTimeout(() => delete metaCache[groupId], 10000);
+
+    return meta;
+  } catch (err) {
+    console.log("Erro metadata:", err?.message);
+    return null;
+  }
+}
+/* ===================================================
+   FIM — CACHE METADATA
+=================================================== */
+
+
+/* ===================================================
+   INÍCIO — EXPULSAR
 =================================================== */
 async function expulsar(sock, groupId, alvo) {
   const ids = [
@@ -50,19 +81,16 @@ async function expulsar(sock, groupId, alvo) {
 
   for (const jid of ids) {
     try {
-      await new Promise(r => setTimeout(r, 200));
       await sock.groupParticipantsUpdate(groupId, [jid], "remove");
       console.log("Expulso:", jid);
       return true;
-    } catch (err) {
-      console.log("Falha com", jid);
-    }
+    } catch {}
   }
 
   return false;
 }
 /* ===================================================
-   FIM — EXPULSAR UNIVERSAL
+   FIM — EXPULSAR
 =================================================== */
 
 
@@ -76,22 +104,19 @@ export async function limparBans(msg, sock) {
     return { status: "erro", motivo: "nao_grupo" };
   }
 
-  let meta;
-  let nomeGrupo = "Grupo";
+  const bans = loadBans();
+  const meta = await getGroupMeta(sock, groupId);
 
-  try {
-    meta = await sock.groupMetadata(groupId);
-    nomeGrupo = meta.subject;
-  } catch {
+  if (!meta || !meta.participants) {
     return {
       status: "erro",
-      mensagem: "❌ erro ao obter dados do grupo",
+      mensagem: "⚠️ Falha ao obter dados do grupo",
     };
   }
 
-  const bans = loadBans();
+  const nomeGrupo = meta.subject || "Grupo";
 
-  // 🔐 valida bot admin (CORRIGIDO)
+  // 🔐 valida admin
   const botId = normalizeJid(sock.user.id);
 
   const botInfo = meta.participants.find(
@@ -105,31 +130,31 @@ export async function limparBans(msg, sock) {
     };
   }
 
-  const participantes = meta.participants.map((p) => ({
-    id: normalizeJid(p.id),
-    admin: p.admin,
-  }));
+  // 🚀 SET PRA BUSCA RÁPIDA
+  const participantesMap = new Map();
+
+  for (const p of meta.participants) {
+    participantesMap.set(normalizeJid(p.id), p.admin);
+  }
 
   let removidos = 0;
 
   for (const b of bans.global) {
-    const alvo = participantes.find((p) => p.id === b.alvo);
-
-    if (!alvo) continue;
+    // 🔍 verifica se está no grupo
+    if (!participantesMap.has(b.alvo)) continue;
 
     // 🛑 não remove admin
-    if (alvo.admin) continue;
+    if (participantesMap.get(b.alvo)) continue;
 
     try {
       const ok = await expulsar(sock, groupId, b.alvo);
 
       if (ok) {
         removidos++;
-        await new Promise((r) => setTimeout(r, 800));
+        await new Promise((r) => setTimeout(r, 500)); // mais rápido
       }
     } catch (err) {
       console.log("Erro ao expulsar:", b.alvo);
-      continue;
     }
   }
 
