@@ -73,7 +73,7 @@ export async function ban(msg, sock, fromClean, args) {
   let banidos = [];
 
   for (const alvoTag of alvosTags) {
-    const alvo = alvoTag.replace("@", "").trim();
+    const alvo = alvoTag.replace("@", "").replace(/\D/g, "");
 
     if (alvo === fromClean) continue;
 
@@ -121,26 +121,41 @@ export async function ban(msg, sock, fromClean, args) {
 }
 
 /* ---------------------------------------------------
-   /unban
+   /unban — REMOVE TODAS AS OCORRÊNCIAS 🔥
 --------------------------------------------------- */
 export async function unban(msg, sock, fromClean, args) {
   const alvoTag = args[0];
+
   if (!alvoTag || !alvoTag.startsWith("@")) {
     return { status: "erro", motivo: "formato_invalido" };
   }
 
-  const alvo = alvoTag.replace("@", "");
+  const alvo = alvoTag.replace("@", "").replace(/\D/g, "");
+
   let bans = loadBans();
+
   const antes = bans.global.length;
 
   bans.global = bans.global.filter((b) => b.alvo !== alvo);
+
+  const depois = bans.global.length;
+
   saveBans(bans);
 
-  if (antes === bans.global.length) {
-    return { status: "erro", motivo: "nao_existe" };
+  const removidos = antes - depois;
+
+  if (removidos === 0) {
+    return {
+      status: "erro",
+      motivo: "nao_existe",
+    };
   }
 
-  return { status: "ok", tipo: "unban" };
+  return {
+    status: "ok",
+    tipo: "unban",
+    removidos,
+  };
 }
 
 /* ---------------------------------------------------
