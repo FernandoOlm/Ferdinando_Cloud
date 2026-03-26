@@ -193,6 +193,11 @@
   "file": "../commands/limparbans.js",
   "function": "limparBans",
   "admin": true
+},
+"!add": {
+  "file": "../commands/add.js",
+  "function": "add",
+  "admin": true
 }
 
 }
