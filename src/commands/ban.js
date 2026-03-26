@@ -121,9 +121,11 @@ export async function ban(msg, sock, fromClean, args) {
 }
 
 /* ---------------------------------------------------
-   /unban — REMOVE TODAS AS OCORRÊNCIAS 🔥
+   /unban — COM CONFIRMAÇÃO REAL 🔥
 --------------------------------------------------- */
 export async function unban(msg, sock, fromClean, args) {
+  const groupId = msg.key.remoteJid;
+
   const alvoTag = args[0];
 
   if (!alvoTag || !alvoTag.startsWith("@")) {
@@ -136,6 +138,7 @@ export async function unban(msg, sock, fromClean, args) {
 
   const antes = bans.global.length;
 
+  // remove
   bans.global = bans.global.filter((b) => b.alvo !== alvo);
 
   const depois = bans.global.length;
@@ -143,6 +146,16 @@ export async function unban(msg, sock, fromClean, args) {
   saveBans(bans);
 
   const removidos = antes - depois;
+
+  // 🔍 validação REAL
+  const aindaExiste = bans.global.find((b) => b.alvo === alvo);
+
+  if (aindaExiste) {
+    return {
+      status: "erro",
+      motivo: "falha_remocao",
+    };
+  }
 
   if (removidos === 0) {
     return {
@@ -155,6 +168,7 @@ export async function unban(msg, sock, fromClean, args) {
     status: "ok",
     tipo: "unban",
     removidos,
+    mensagem: `✅ ID ${alvo} removido (${removidos} registros apagados)`,
   };
 }
 
