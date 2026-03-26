@@ -256,9 +256,9 @@ export async function banCheckEntrada_Unique01(sock, groupId, usuario) {
   return true;
 }
 
-
 /* ---------------------------------------------------
    /limpar-bans — Expulsar banidos que ainda estão no grupo
+   VERSÃO BLINDADA 🔒
 --------------------------------------------------- */
 export async function limparBans(msg, sock) {
   const groupId = msg.key.remoteJid;
@@ -275,18 +275,58 @@ export async function limparBans(msg, sock) {
   try {
     meta = await sock.groupMetadata(groupId);
     nomeGrupo = meta.subject;
-  } catch {}
+  } catch (err) {
+    return {
+      status: "erro",
+      mensagem: "❌ Erro ao acessar dados do grupo",
+    };
+  }
 
-  const participantes = meta.participants.map((p) =>
-    p.id.replace(/@.*/, "")
+  // 🔐 verificar se bot é admin (SEGURANÇA)
+  const botId = sock.user.id.replace(/@.*/, "");
+  const botInfo = meta.participants.find(p =>
+    p.id.replace(/@.*/, "") === botId
   );
+
+  if (!botInfo || !botInfo.admin) {
+    return {
+      status: "erro",
+      mensagem: "❌ Eu preciso ser admin pra limpar os banidos",
+    };
+  }
+
+  const participantes = meta.participants.map((p) => ({
+    id: p.id.replace(/@.*/, ""),
+    admin: p.admin
+  }));
 
   let removidos = 0;
 
   for (const b of bans.global) {
-    if (participantes.includes(b.alvo)) {
+    const alvoInfo = participantes.find(p => p.id === b.alvo);
+
+    // ❌ não está no grupo
+    if (!alvoInfo) continue;
+
+    // 🛑 nunca tenta remover admin
+    if (alvoInfo.admin) {
+      console.log("Pulando admin:", b.alvo);
+      continue;
+    }
+
+    try {
       const sucesso = await expulsarDoGrupo(sock, groupId, b.alvo);
-      if (sucesso) removidos++;
+
+      if (sucesso) {
+        removidos++;
+        await new Promise(r => setTimeout(r, 800)); // ⏱️ anti-flood
+      }
+
+    } catch (err) {
+      console.log("Erro ao expulsar:", b.alvo, err?.message);
+
+      // ⚠️ ignora erro e continua
+      continue;
     }
   }
 
