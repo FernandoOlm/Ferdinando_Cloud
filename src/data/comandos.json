@@ -198,6 +198,11 @@
   "file": "../commands/add.js",
   "function": "add",
   "admin": true
+},
+"!add-limpa": {
+  "file": "../commands/add-limpa.js",
+  "function": "addLimpa",
+  "admin": true
 }
 
 }
