@@ -190,7 +190,7 @@
   "admin": false
 },
 "!limpar-bans": {
-  "file": "../commands/ban.js",
+  "file": "../commands/limparbans.js",
   "function": "limparBans",
   "admin": true
 }
