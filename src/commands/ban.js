@@ -3,7 +3,7 @@
 --------------------------------------------------- */
 
 import fs from "fs";
-import path from "path"; // ✅ CORRIGIDO: path importado corretamente
+import path from "path";
 import { aiGenerateReply_Unique01 } from "../core/aiClient.js";
 
 const banPath = path.resolve("src/data/bans.json");
@@ -42,11 +42,7 @@ async function expulsarDoGrupo(sock, groupId, alvo) {
       console.log("Expulso com sucesso usando:", jid);
       return true;
     } catch (err) {
-      console.log(
-        "Erro expulsando com",
-        jid,
-        err?.output?.payload?.message
-      );
+      console.log("Erro expulsando com", jid, err?.output?.payload?.message);
     }
   }
 
@@ -54,7 +50,7 @@ async function expulsarDoGrupo(sock, groupId, alvo) {
 }
 
 /* ---------------------------------------------------
-   /ban
+   /ban (MULTI USER 🔥)
 --------------------------------------------------- */
 export async function ban(msg, sock, fromClean, args) {
   const groupId = msg.key.remoteJid;
@@ -63,34 +59,49 @@ export async function ban(msg, sock, fromClean, args) {
     return { status: "erro", motivo: "nao_grupo" };
   }
 
-  const alvoTag = args[0];
-  if (!alvoTag || !alvoTag.startsWith("@")) {
+  const alvosTags = args.filter((a) => a.startsWith("@"));
+
+  if (!alvosTags.length) {
     return { status: "erro", motivo: "formato_invalido" };
   }
 
-  const alvo = alvoTag.replace("@", "").trim();
+  const motivoParts = args.filter((a) => !a.startsWith("@"));
   const motivo =
-    args.length > 1 ? args.slice(1).join(" ") : "sem motivo informado";
-
-  if (alvo === fromClean) {
-    return { status: "erro", motivo: "auto_ban" };
-  }
+    motivoParts.length > 0 ? motivoParts.join(" ") : "sem motivo informado";
 
   const bans = loadBans();
-  bans.global.push({
-    alvo,
-    admin: fromClean,
-    grupoOrigem: groupId,
-    motivo,
-    data: Date.now(),
-  });
+  let banidos = [];
+
+  for (const alvoTag of alvosTags) {
+    const alvo = alvoTag.replace("@", "").trim();
+
+    if (alvo === fromClean) continue;
+
+    bans.global.push({
+      alvo,
+      admin: fromClean,
+      grupoOrigem: groupId,
+      motivo,
+      data: Date.now(),
+    });
+
+    const sucesso = await expulsarDoGrupo(sock, groupId, alvo);
+
+    if (sucesso) {
+      banidos.push(alvo);
+    }
+  }
+
   saveBans(bans);
 
-  await expulsarDoGrupo(sock, groupId, alvo);
+  if (!banidos.length) {
+    return { status: "erro", motivo: "falha_expulsao" };
+  }
 
   const anuncioIA = await aiGenerateReply_Unique01(`
-        Gere um anúncio engraçado e sarcástico para um ban REAL.
-        Não cite nomes, não marque @, não identifique o alvo.
+        Gere um anúncio engraçado e sarcástico para bans em massa.
+        Não cite nomes, não marque @.
+        Quantidade: ${banidos.length}
         Motivo: "${motivo}".
   `);
 
@@ -103,6 +114,7 @@ export async function ban(msg, sock, fromClean, args) {
   return {
     status: "ok",
     tipo: "ban",
+    total: banidos.length,
     anuncioIA,
     despedida,
   };
@@ -134,7 +146,7 @@ export async function unban(msg, sock, fromClean, args) {
 /* ---------------------------------------------------
    /bans — do grupo
 --------------------------------------------------- */
-export async function bansGrupo(msg, sock, fromClean) {
+export async function bansGrupo(msg, sock) {
   const groupId = msg.key.remoteJid;
 
   if (!groupId.endsWith("@g.us")) {
@@ -148,8 +160,7 @@ export async function bansGrupo(msg, sock, fromClean) {
     return {
       status: "ok",
       tipo: "bans_grupo",
-      mensagem:
-        "📜 *Bans deste grupo*\n\nNenhum ban registrado.",
+      mensagem: "📜 *Bans deste grupo*\n\nNenhum ban registrado.",
     };
   }
 
@@ -166,10 +177,11 @@ export async function bansGrupo(msg, sock, fromClean) {
     mensagem: texto,
   };
 }
+
 /* ---------------------------------------------------
-   /globalbans — com nome dos grupos (FIXED)
+   /globalbans
 --------------------------------------------------- */
-export async function bansGlobais(msg, sock, fromClean) {
+export async function bansGlobais(msg, sock) {
   const chatId = msg.key.remoteJid;
   const bans = loadBans();
 
@@ -177,21 +189,16 @@ export async function bansGlobais(msg, sock, fromClean) {
     const texto = "🌍 *Bans Globais*\n\nNenhum ban global registrado.";
     await sock.sendMessage(chatId, { text: texto });
 
-    return {
-      status: "ok",
-      tipo: "globalbans",
-      mensagem: texto
-    };
+    return { status: "ok", tipo: "globalbans", mensagem: texto };
   }
 
   let texto = "🌍 *Bans Globais*\n\n";
 
   for (const b of bans.global) {
-    const grupoId = b.grupoOrigem;
     let nomeGrupo = "desconhecido";
 
     try {
-      const meta = await sock.groupMetadata(grupoId);
+      const meta = await sock.groupMetadata(b.grupoOrigem);
       nomeGrupo = meta.subject;
     } catch {
       nomeGrupo = "(grupo inacessível)";
@@ -199,20 +206,16 @@ export async function bansGlobais(msg, sock, fromClean) {
 
     texto += `• ID: ${b.alvo}\n`;
     texto += `  Motivo: ${b.motivo}\n`;
-    texto += `  Grupo: ${grupoId.replace("@g.us", "")} — ${nomeGrupo}\n\n`;
+    texto += `  Grupo: ${b.grupoOrigem.replace("@g.us", "")} — ${nomeGrupo}\n\n`;
   }
 
-  // 🔥 ENVIA DIRETO NO WHATSAPP
   await sock.sendMessage(chatId, { text: texto });
 
-  return {
-    status: "ok",
-    tipo: "globalbans",
-    mensagem: texto
-  };
+  return { status: "ok", tipo: "globalbans", mensagem: texto };
 }
+
 /* ---------------------------------------------------
-   Alerta: banido entrou no grupo
+   ALERTA entrada banido
 --------------------------------------------------- */
 export async function banCheckEntrada_Unique01(sock, groupId, usuario) {
   const alvo = usuario.replace(/@.*/, "");
@@ -237,17 +240,15 @@ export async function banCheckEntrada_Unique01(sock, groupId, usuario) {
 
   const alertaIA = await aiGenerateReply_Unique01(`
         Gere um alerta para administradores.
-        Diga que um usuário previamente banido entrou no grupo "${nomeGrupo}".
+        Um usuário banido entrou no grupo "${nomeGrupo}".
         Motivo: "${encontrado.motivo}".
-        Não cite nomes, não use @.
   `);
 
   const alerta =
-    "⚠️ *ALERTA DE ADMINISTRAÇÃO*\n\n" +
+    "⚠️ *ALERTA*\n\n" +
     alertaIA +
-    `\n\n• ID do banido: *${encontrado.alvo}*` +
-    `\n• Grupo: ${nomeGrupo}` +
-    `\n• Motivo original: ${encontrado.motivo}`;
+    `\n\n• ID: ${encontrado.alvo}` +
+    `\n• Grupo: ${nomeGrupo}`;
 
   for (const adm of admins) {
     await sock.sendMessage(adm.id, { text: alerta });
@@ -257,8 +258,7 @@ export async function banCheckEntrada_Unique01(sock, groupId, usuario) {
 }
 
 /* ---------------------------------------------------
-   /limpar-bans — Expulsar banidos que ainda estão no grupo
-   VERSÃO BLINDADA 🔒
+   /limpar-bans
 --------------------------------------------------- */
 export async function limparBans(msg, sock) {
   const groupId = msg.key.remoteJid;
@@ -270,81 +270,38 @@ export async function limparBans(msg, sock) {
   const bans = loadBans();
 
   let meta;
-  let nomeGrupo = "Grupo";
-
   try {
     meta = await sock.groupMetadata(groupId);
-    nomeGrupo = meta.subject;
-  } catch (err) {
-    return {
-      status: "erro",
-      mensagem: "❌ Erro ao acessar dados do grupo",
-    };
-  }
-
-  // 🔐 verificar se bot é admin (SEGURANÇA)
- const botId = sock.user.id.split(":")[0].replace(/@.*/, "");
-  const botInfo = meta.participants.find(p =>
-    p.id.replace(/@.*/, "") === botId
-  );
-
-  if (!botInfo || !botInfo.admin) {
-    return {
-      status: "erro",
-      mensagem: "❌ Eu preciso ser admin pra limpar os banidos",
-    };
+  } catch {
+    return { status: "erro", mensagem: "Erro ao acessar grupo" };
   }
 
   const participantes = meta.participants.map((p) => ({
     id: p.id.replace(/@.*/, ""),
-    admin: p.admin
+    admin: p.admin,
   }));
 
   let removidos = 0;
 
   for (const b of bans.global) {
-    const alvoInfo = participantes.find(p => p.id === b.alvo);
+    const alvoInfo = participantes.find((p) => p.id === b.alvo);
 
-    // ❌ não está no grupo
-    if (!alvoInfo) continue;
+    if (!alvoInfo || alvoInfo.admin) continue;
 
-    // 🛑 nunca tenta remover admin
-    if (alvoInfo.admin) {
-      console.log("Pulando admin:", b.alvo);
-      continue;
+    const sucesso = await expulsarDoGrupo(sock, groupId, b.alvo);
+
+    if (sucesso) {
+      removidos++;
+      await new Promise((r) => setTimeout(r, 800));
     }
-
-    try {
-      const sucesso = await expulsarDoGrupo(sock, groupId, b.alvo);
-
-      if (sucesso) {
-        removidos++;
-        await new Promise(r => setTimeout(r, 800)); // ⏱️ anti-flood
-      }
-
-    } catch (err) {
-      console.log("Erro ao expulsar:", b.alvo, err?.message);
-
-      // ⚠️ ignora erro e continua
-      continue;
-    }
-  }
-
-  if (removidos === 0) {
-    return {
-      status: "ok",
-      tipo: "limpar_bans",
-      mensagem: `✅ O grupo *${nomeGrupo}* continua limpo e sem golpistas`,
-    };
   }
 
   return {
     status: "ok",
     tipo: "limpar_bans",
-    mensagem: `🧹 *${nomeGrupo}* Limpo!\n🚫 ${removidos} banidos removidos`,
+    mensagem: `🧹 ${removidos} banidos removidos`,
   };
 }
-
 
 /* ---------------------------------------------------
    FIM
