@@ -116,21 +116,7 @@ export async function limparBans(msg, sock) {
 
   const nomeGrupo = meta.subject || "Grupo";
 
-  // 🔐 valida admin
-  const botId = normalizeJid(sock.user.id);
-
-  const botInfo = meta.participants.find(
-    (p) => normalizeJid(p.id) === botId
-  );
-
-  if (!botInfo || !botInfo.admin) {
-    return {
-      status: "erro",
-      mensagem: "❌ Eu preciso ser admin pra limpar os banidos",
-    };
-  }
-
-  // 🚀 SET PRA BUSCA RÁPIDA
+  // 🚀 MAPA DE PARTICIPANTES (rápido)
   const participantesMap = new Map();
 
   for (const p of meta.participants) {
@@ -140,10 +126,10 @@ export async function limparBans(msg, sock) {
   let removidos = 0;
 
   for (const b of bans.global) {
-    // 🔍 verifica se está no grupo
+    // 🔍 só continua se o cara estiver no grupo
     if (!participantesMap.has(b.alvo)) continue;
 
-    // 🛑 não remove admin
+    // 🛑 não remove admin (segurança mínima)
     if (participantesMap.get(b.alvo)) continue;
 
     try {
@@ -151,7 +137,7 @@ export async function limparBans(msg, sock) {
 
       if (ok) {
         removidos++;
-        await new Promise((r) => setTimeout(r, 500)); // mais rápido
+        await new Promise((r) => setTimeout(r, 500));
       }
     } catch (err) {
       console.log("Erro ao expulsar:", b.alvo);
