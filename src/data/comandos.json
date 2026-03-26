@@ -188,6 +188,11 @@
   "file": "../commands/reputacao.js",
   "function": "cleanRep",
   "admin": false
+},
+"!limpar-bans": {
+  "file": "../commands/ban.js",
+  "function": "limparBans",
+  "admin": true
 }
 
 }

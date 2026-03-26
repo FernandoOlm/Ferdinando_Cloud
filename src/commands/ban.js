@@ -256,6 +256,56 @@ export async function banCheckEntrada_Unique01(sock, groupId, usuario) {
   return true;
 }
 
+
+/* ---------------------------------------------------
+   /limpar-bans — Expulsar banidos que ainda estão no grupo
+--------------------------------------------------- */
+export async function limparBans(msg, sock) {
+  const groupId = msg.key.remoteJid;
+
+  if (!groupId.endsWith("@g.us")) {
+    return { status: "erro", motivo: "nao_grupo" };
+  }
+
+  const bans = loadBans();
+
+  let meta;
+  let nomeGrupo = "Grupo";
+
+  try {
+    meta = await sock.groupMetadata(groupId);
+    nomeGrupo = meta.subject;
+  } catch {}
+
+  const participantes = meta.participants.map((p) =>
+    p.id.replace(/@.*/, "")
+  );
+
+  let removidos = 0;
+
+  for (const b of bans.global) {
+    if (participantes.includes(b.alvo)) {
+      const sucesso = await expulsarDoGrupo(sock, groupId, b.alvo);
+      if (sucesso) removidos++;
+    }
+  }
+
+  if (removidos === 0) {
+    return {
+      status: "ok",
+      tipo: "limpar_bans",
+      mensagem: `✅ O grupo *${nomeGrupo}* continua limpo e sem golpistas`,
+    };
+  }
+
+  return {
+    status: "ok",
+    tipo: "limpar_bans",
+    mensagem: `🧹 *${nomeGrupo}* Limpo!\n🚫 ${removidos} banidos removidos`,
+  };
+}
+
+
 /* ---------------------------------------------------
    FIM
 --------------------------------------------------- */
